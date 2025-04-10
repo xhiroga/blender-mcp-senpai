@@ -9,3 +9,4 @@ Blender Sensei (先生, menter).
 - [ ] Use RAG thruough MCP
 - [ ] Install MCP server by Drag & Drop
 - [ ] Describe Blender version through MCP
+- [ ] Send Blender screenshot through MCP
