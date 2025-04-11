@@ -1,1 +1,3 @@
 *.duckdb
+input/
+output/
