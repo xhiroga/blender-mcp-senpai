@@ -12,6 +12,11 @@ dependencies = [
     "sentence-transformers>=4.0.2",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+
 [tool.mypy]
 # Ignore missing stubs for specific third-party libraries
 [[tool.mypy.overrides]]
@@ -21,3 +26,7 @@ module = [
     "duckdb.*" #念のためduckdbも追加
 ]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-vv --tb=short -s"
+markers = ["adhoc"]

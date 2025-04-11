@@ -35,7 +35,7 @@ def clone_or_pull_repo(repo: dict, input_dir: Path):
     repo_url = repo["url"]
     repo_name = repo["name"]
     branch = repo.get("branch", "main")
-    local_dir = input_dir/ repo_name
+    local_dir = input_dir / repo_name
 
     if local_dir.exists() and (local_dir / ".git").exists():
         logging.info(f"Pulling latest changes for {repo_name} from {branch} branch...")
@@ -177,7 +177,7 @@ def save_to_parquet(df: pd.DataFrame, filename: str):
                 ("version", pa.string()),
                 ("hosted_url", pa.string()),
                 ("repo_name", pa.string()),
-                ("source",  pa.string()),
+                ("source", pa.string()),
             ]
         )
         table = pa.Table.from_pandas(df, schema=schema)
@@ -193,7 +193,9 @@ def main():
         for repo in REPOSITORIES:
             INPUT_DIR.mkdir(parents=True, exist_ok=True)
             clone_or_pull_repo(repo, INPUT_DIR)
-            dataframe = repo_to_dataframe(repo, SentenceTransformer(EMBEDDING_MODEL_NAME))
+            dataframe = repo_to_dataframe(
+                repo, SentenceTransformer(EMBEDDING_MODEL_NAME)
+            )
             OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
             parquet_filename = OUTPUT_DIR / f"{repo['name']}.parquet"
             save_to_parquet(dataframe, parquet_filename)
