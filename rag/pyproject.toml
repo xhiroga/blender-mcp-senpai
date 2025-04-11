@@ -9,3 +9,13 @@ dependencies = [
     "gitpython>=3.1.44",
     "sentence-transformers>=4.0.2",
 ]
+
+[tool.mypy]
+# Ignore missing stubs for specific third-party libraries
+[[tool.mypy.overrides]]
+module = [
+    "sentence_transformers.*",
+    "git.*", #念のためgitも追加
+    "duckdb.*" #念のためduckdbも追加
+]
+ignore_missing_imports = true
