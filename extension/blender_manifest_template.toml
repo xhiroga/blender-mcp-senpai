@@ -6,8 +6,15 @@ name = "MCP Senpai"
 tagline = "Senpai (menter) in your use of Blender, using the MCP protocol"
 maintainer = "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>"
 type = "add-on"
+platforms = [
+	# build.py will generate this list.
+]
 
 blender_version_min = "4.2.0"
 license = [
   "UNLICENSED",
+]
+
+wheels = [
+	# build.py will generate this list.
 ]

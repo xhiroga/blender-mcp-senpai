@@ -8,11 +8,15 @@ authors = [
 ]
 requires-python = ">=3.11"
 
-dependencies = []
+dependencies = [
+    "websockets>=15.0.1",
+    "zeroconf>=0.146.3",
+]
 
 [dependency-groups]
 dev = [
     "bpy>=4.4.0",
     "fake-bpy-module>=20250412",
     "numpy<2",
+    "tomlkit>=0.13.2",
 ]
