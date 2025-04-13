@@ -66,12 +66,7 @@ def generate_blender_manifest():
         tomlkit.dump(manifest, f)
 
 
-def main():
-    for platform in platforms:
-        download_whls(dependencies(), "3.11", platform)
-
-    generate_blender_manifest()
-
+def build():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     # On WSL, bpy.app.binary_path is empty.
@@ -89,6 +84,15 @@ def main():
             OUTPUT_DIR,
         ],
     )
+
+
+def main():
+    for platform in platforms:
+        download_whls(dependencies(), "3.11", platform)
+
+    generate_blender_manifest()
+
+    build()
 
 
 if __name__ == "__main__":
