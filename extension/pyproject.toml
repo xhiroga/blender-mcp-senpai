@@ -9,7 +9,7 @@ authors = [
 requires-python = ">=3.11"
 
 dependencies = [
-    "websockets>=15.0.1",
+    "fastapi[standard]>=0.115.12",
     "zeroconf>=0.146.3",
 ]
 
@@ -18,5 +18,9 @@ dev = [
     "bpy>=4.4.0",
     "fake-bpy-module>=20250412",
     "numpy<2",
+    "pytest>=8.3.5",
     "tomlkit>=0.13.2",
 ]
+
+[tool.pytest.ini_options]
+addopts = "-vv --tb=short -s"
