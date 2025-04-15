@@ -1,0 +1,20 @@
+GET http://localhost:2698/healthz HTTP/1.1
+
+### 
+
+POST http://localhost:4321/execute HTTP/1.1
+content-type: application/json
+
+{
+  "code": ""
+}
+
+###
+
+POST http://localhost:4321/execute HTTP/1.1
+content-type: application/json
+
+{
+  "code": "import bpy\n\n# 既存のメッシュを削除\nbpy.ops.object.select_all(action='SELECT')\nbpy.ops.object.delete()\n\n# UV球体を作成\nbpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(0,0,0))\n\n# 作成したオブジェクトを選択\nsphere = bpy.context.active_object\n\n# マテリアルを作成して適用\nmat = bpy.data.materials.new(name='SphereMaterial')\nmat.use_nodes = True\nmat.node_tree.nodes['Principled BSDF'].inputs[0].default_value = (0.8, 0.2, 0.2, 1)  # 赤色\nsphere.data.materials.append(mat)"
+}
+

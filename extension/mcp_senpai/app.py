@@ -14,7 +14,9 @@ def execute_bpy_code(code: str):
     capture_buffer = io.StringIO()
     with redirect_stdout(capture_buffer):
         exec(code, {"bpy": bpy})
-    return capture_buffer.getvalue()
+    value = capture_buffer.getvalue()
+    print(f"execute_bpy_code: {value}")
+    return value
 
 
 @app.get("/healthz")
@@ -29,4 +31,7 @@ async def healthz():
 async def execute(request: Request):
     data = await request.json()
     code = data["code"]
-    return await execute_bpy_code(code)
+    print(f"execute: {code}")
+    executed = await execute_bpy_code(code)
+    print(f"executed: {executed}")
+    return {"executed": executed}

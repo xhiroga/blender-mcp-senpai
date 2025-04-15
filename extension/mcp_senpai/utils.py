@@ -34,13 +34,16 @@ def mainthreadify(
     """
 
     def decorator(function: Callable[P, T]) -> Callable[P, Coroutine[Any, Any, T]]:
-        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]:
+            print(f"decorator: {function.__name__}")
             loop = asyncio.get_running_loop()
             conc_future = concurrent.futures.Future()
             execution_queue.put(
                 lambda: conc_future.set_result(function(*args, **kwargs))
             )
-            return asyncio.wrap_future(conc_future, loop=loop)
+            future = asyncio.wrap_future(conc_future, loop=loop)
+            print(f"future: {future}")
+            return future
 
         return wrapper
 
