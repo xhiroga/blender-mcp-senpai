@@ -1,5 +1,11 @@
 ## MCP Server
 
+## Development
+
+```sh
+npx @modelcontextprotocol/inspector@latest uvx mcp-server
+```
+
 ## Install
 
 ### Local
