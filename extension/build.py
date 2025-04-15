@@ -74,6 +74,7 @@ def build():
     subprocess.run(
         [
             blender_exe,
+            "--factory-startup",
             "--command",
             "extension",
             "build",
@@ -86,6 +87,20 @@ def build():
     )
 
 
+def index_json():
+    blender_exe = os.environ.get("BLENDER_EXE") or bpy.app.binary_path
+    subprocess.run(
+        [
+            blender_exe,
+            "--factory-startup",
+            "--command",
+            "extension",
+            "server-generate",
+            "--repo-dir",
+            OUTPUT_DIR,
+        ],
+    )
+
 def main():
     for platform in platforms:
         download_whls(dependencies(), "3.11", platform)
@@ -93,6 +108,8 @@ def main():
     generate_blender_manifest()
 
     build()
+
+    index_json()
 
 
 if __name__ == "__main__":
