@@ -1,6 +1,6 @@
-# Blender Sensei MCP
+# Blender MCP Senpai
 
-Blender Sensei (先生, menter).
+Your senpai (先輩, mentor) of Blener.
 
 ## Features
 
