@@ -1,43 +1,56 @@
-import io
-from contextlib import redirect_stdout
+import socket
 
-import bpy
 import uvicorn
-from fastapi import FastAPI, Request
 
-from .utils import mainthreadify
-
-app = FastAPI()
+from .app import app
+from .mdns import register_service, unregister_service
 
 
-@mainthreadify()
-def execute_bpy_code(code: str):
-    capture_buffer = io.StringIO()
-    with redirect_stdout(capture_buffer):
-        exec(code, {"bpy": bpy})
-    return capture_buffer.getvalue()
+def find_available_port():
+    """Find an available port on the system."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("", 0))
+        s.listen(1)
+        port = s.getsockname()[1]
+        return port
 
 
-@app.get("/healthz")
-async def healthz():
-    return {
-        "version": bpy.app.version_string,
-        "binary_path": bpy.app.binary_path,
-    }
+class Server:
+    def __init__(self):
+        self.server = None
+        self.type = "_blender-mcp-sp._tcp.local."
+        self.name = None
+        self.port = None
+        self.zeroconf = None
+        self.service_info = None
+
+    def run(self):
+        # Find an available port
+        self.port = find_available_port()
+        self.name = f"blender-{self.port}"
+
+        # Register mDNS service before starting the server
+        self.zeroconf, self.service_info = register_service(
+            self.type,
+            self.name,
+            self.port,
+            {},
+            ["0.0.0.0"],
+        )
+
+        # Create server configuration with the found port
+        config = uvicorn.Config(app, host="0.0.0.0", port=self.port, loop="asyncio")
+        self.server = uvicorn.Server(config)
+
+        # Run the server (this will block until the server is stopped)
+        self.server.run()
+
+    def stop(self):
+        if self.zeroconf and self.service_info:
+            unregister_service(self.zeroconf, self.service_info)
+
+        if self.server:
+            self.server.should_exit = True
 
 
-@app.post("/execute")
-async def execute(request: Request):
-    data = await request.json()
-    code = data["code"]
-    return await execute_bpy_code(code)
-
-
-def run_server():
-    config = uvicorn.Config(app, host="0.0.0.0", port=8000, loop="asyncio")
-    server = uvicorn.Server(config)
-    server.run()
-
-
-if __name__ == "__main__":
-    run_server()
+server = Server()

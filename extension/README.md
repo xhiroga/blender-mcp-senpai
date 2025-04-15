@@ -3,6 +3,7 @@
 ## Build
 
 ```sh
+# TODO: Dealing with the complication of extensions in Bledner, which is launched for builds.
 uv run --env-file .env build.py
 ```
 
@@ -12,8 +13,7 @@ uv run --env-file .env build.py
 # Install extension
 
 ## Linux
-avahi-discover | grep blender-mcp-sp
-curl http://blender-mcp-sp.local:8000/healthz
+avahi-browse -a | grep blender
 ```
 
 ## Test
@@ -21,6 +21,10 @@ curl http://blender-mcp-sp.local:8000/healthz
 ```sh
 uv run python -m pytest
 ```
+
+## ToDo
+
+- [ ] Keep log files locally.
 
 ## References
 

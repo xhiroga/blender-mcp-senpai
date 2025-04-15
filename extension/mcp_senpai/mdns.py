@@ -16,6 +16,7 @@ def register_service(
         properties=properties,
         parsed_addresses=parsed_addresses,
     )
+    print(f"register_service: {name}.{type} at {parsed_addresses[0]}:{port}")
     zeroconf.register_service(service_info)
     # TODO: Use logger
     print(f"mDNS service registered: {name}.{type} at {parsed_addresses[0]}:{port}")

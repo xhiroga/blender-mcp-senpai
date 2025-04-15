@@ -2,7 +2,7 @@ import threading
 
 import bpy
 
-from .server import run_server
+from .server import server
 from .utils import execute_queued_functions
 
 
@@ -16,8 +16,9 @@ def register():
     print("Hello from extension!", f"{bpy.app.version_string}")
 
     bpy.app.timers.register(execute_queued_functions)
-    threading.Thread(target=run_server).start()
+    threading.Thread(target=server.run).start()
 
 
 def unregister():
     print("Goodbye from extension!")
+    server.stop()
