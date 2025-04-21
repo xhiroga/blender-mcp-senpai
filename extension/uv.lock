@@ -227,6 +227,7 @@ version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
+    { name = "pydantic" },
     { name = "zeroconf" },
 ]
 
@@ -242,6 +243,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.12" },
+    { name = "pydantic", specifier = ">=2.11.3" },
     { name = "zeroconf", specifier = ">=0.146.3" },
 ]
 

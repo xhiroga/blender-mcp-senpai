@@ -1,3 +1,3 @@
-output/mcp_senpai*.zip
+output/
 mcp_senpai/blender_manifest.toml
-mcp_senpai/wheels/*
+mcp_senpai/wheels/

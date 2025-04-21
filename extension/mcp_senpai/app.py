@@ -2,8 +2,9 @@ import io
 from contextlib import redirect_stdout
 
 import bpy
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 
+from .usecases import get_object, get_objects
 from .utils import mainthreadify
 
 app = FastAPI()
@@ -35,3 +36,20 @@ async def execute(request: Request):
     executed = await execute_bpy_code(code)
     print(f"executed: {executed}")
     return {"executed": executed}
+
+
+@app.get("/resources/")
+async def get_resources():
+    objects = get_objects()
+    return {"resources": objects}
+
+
+@app.get("/resources/{resource_type}/{name}")
+async def get_resource(resource_type: str, name: str):
+    if resource_type == "objects":
+        resource = get_object(name)
+        return {"resource": resource}
+    else:
+        raise HTTPException(
+            status_code=404, detail=f"Resource type '{resource_type}' not supported"
+        )
