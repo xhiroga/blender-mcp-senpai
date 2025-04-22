@@ -12,11 +12,11 @@ class Resource(TypedDict):
     uri: str
     name: str
     mimeType: str
-    text: str
 
 
-class ReadResourceResult(TypedDict):
-    contents: list[Resource]
+class ReadResourceContent(TypedDict):
+    content: str
+    mime_type: str
 
 
 @mainthreadify()
@@ -40,7 +40,7 @@ def get_objects() -> list[Resource]:
     ]
 
 
-def get_object(name: str) -> ReadResourceResult:
+def get_object(name: str) -> list[ReadResourceContent]:
     """
     Return data that can be displayed in the Properties editor.
     """
@@ -68,13 +68,9 @@ def get_object(name: str) -> ReadResourceResult:
         "properties": properties,
         "modifiers": modifiers,
     }
-    return ReadResourceResult(
-        contents=[
-            Resource(
-                uri=f"blender://objects/{name}",
-                name=name,
-                mimeType="application/json",
-                text=json.dumps(info),
-            )
-        ]
-    )
+    return [
+        {
+            "content": json.dumps(info),
+            "mime_type": "text/plain",
+        }
+    ]

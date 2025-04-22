@@ -4,6 +4,7 @@ from typing import Any, Awaitable, Callable
 
 import websockets
 from mcp import types
+from mcp.server.lowlevel.helper_types import ReadResourceContents
 from websockets.asyncio.client import ClientConnection
 
 from .service_discovery import discover_server
@@ -45,12 +46,14 @@ class BlenderClient:
         response = await self._send_message({"type": "get_resources"})
         return response.get("data", {})
 
-    # TODO: Maybe we can fix it to get_object, along with extensions.
-    async def get_resource(self, resource_type: str, name: str) -> types.Resource:
-        await self.log("debug", f"get_resource: {resource_type} {name}")
+    async def get_resource(
+        self, resource_type: str, name: str
+    ) -> list[ReadResourceContents]:
+        await self.log("debug", f"get_resource: {resource_type=} {name=}")
         response = await self._send_message(
             {"type": "get_resource", "resource_type": resource_type, "name": name}
         )
+        await self.log("debug", f"get_resource: {response=}")
         return response.get("data", {})
 
 

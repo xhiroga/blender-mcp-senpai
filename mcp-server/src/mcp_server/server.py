@@ -2,10 +2,10 @@ import logging
 from datetime import datetime
 from pathlib import Path
 
-from mcp import types
 from mcp.server import InitializationOptions
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.stdio import stdio_server
+from mcp.types import LoggingLevel, Resource
 from pydantic import AnyUrl
 
 from .blender_client import BlenderClient
@@ -26,7 +26,7 @@ async def main(development: bool):
             format="%(asctime)s - %(levelname)s - %(message)s",
         )
 
-    async def log(level: types.LoggingLevel, message: str):
+    async def log(level: LoggingLevel, message: str):
         """
         Since it is not possible to log to stdout, use the logging method provided by MCP.
         NOTE: To avoid `LookupError: <ContextVar name='request_ctx`, ...>, do NOT use `log()` before `server.run()`.
@@ -41,12 +41,13 @@ async def main(development: bool):
     blender_client = BlenderClient(log)
 
     @server.list_resources()
-    async def handle_list_resources() -> list[types.Resource]:
+    async def handle_list_resources() -> list[Resource]:
         await log("debug", "handle_list_resources")
         return await blender_client.list_resources()
 
+    # For some reason, returning list[ReadResourceContents] results in an error on the client side.
     @server.read_resource()
-    async def handle_read_resource(uri: AnyUrl):
+    async def handle_read_resource(uri: AnyUrl) -> str:
         await log(
             "debug",
             f"handle_read_resource: {uri=}, {uri.scheme=}, {uri.host=}, {uri.path=}",
@@ -55,9 +56,13 @@ async def main(development: bool):
             raise ValueError("Unsupported scheme")
 
         if uri.host and uri.path:
-            return await blender_client.get_resource(
+            contents = await blender_client.get_resource(
                 uri.host, uri.path[1:]
             )  # uri.path is like "/Camera"
+
+            # TODO: Handling of cases with multiple CONTENTS
+            content = contents[0]
+            return str(content.content)
 
         raise ValueError("Unsupported resource")
 
@@ -67,7 +72,7 @@ async def main(development: bool):
             write_stream,
             InitializationOptions(
                 server_name=MCP_SERVER_NAME,
-                server_version="0.0.1",
+                server_version="2025-03-26",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities={},
