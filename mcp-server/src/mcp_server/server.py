@@ -1,6 +1,6 @@
 import mcp.types as types
 from mcp.server import InitializationOptions
-from mcp.server.lowlevel import Server
+from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.stdio import stdio_server
 from pydantic import AnyUrl
 
@@ -15,7 +15,7 @@ async def main():
 
     @server.list_resources()
     async def handle_list_resources() -> list[types.Resource]:
-        return blender_client.list_resources()
+        return await blender_client.list_resources()
 
     @server.read_resource()
     async def handle_read_resource(uri: AnyUrl):
@@ -23,7 +23,7 @@ async def main():
             raise ValueError("Unsupported scheme")
 
         if uri.path == "objects":
-            return blender_client.get_resource("objects", uri.path)
+            return await blender_client.get_resource("objects", uri.path)
 
         raise ValueError("Unsupported resource")
 
@@ -34,5 +34,9 @@ async def main():
             InitializationOptions(
                 server_name=MCP_SERVER_NAME,
                 server_version="0.0.1",
+                capabilities=server.get_capabilities(
+                    notification_options=NotificationOptions(),
+                    experimental_capabilities={},
+                ),
             ),
         )
