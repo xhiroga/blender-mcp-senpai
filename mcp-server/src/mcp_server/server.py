@@ -47,12 +47,17 @@ async def main(development: bool):
 
     @server.read_resource()
     async def handle_read_resource(uri: AnyUrl):
-        await log("debug", f"handle_read_resource: {uri}")
+        await log(
+            "debug",
+            f"handle_read_resource: {uri=}, {uri.scheme=}, {uri.host=}, {uri.path=}",
+        )
         if uri.scheme != "blender":
             raise ValueError("Unsupported scheme")
 
-        if uri.path == "objects":
-            return await blender_client.get_resource("objects", uri.path)
+        if uri.host and uri.path:
+            return await blender_client.get_resource(
+                uri.host, uri.path[1:]
+            )  # uri.path is like "/Camera"
 
         raise ValueError("Unsupported resource")
 
