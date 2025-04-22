@@ -1,8 +1,28 @@
+import io
 import json
+from contextlib import redirect_stdout
+from typing import TypedDict
 
 import bpy
 
-from ._types import Resource
+from .utils import mainthreadify
+
+
+class Resource(TypedDict):
+    uri: str
+    name: str
+    mimeType: str
+    text: str
+
+
+@mainthreadify()
+def execute_bpy_code(code: str):
+    capture_buffer = io.StringIO()
+    with redirect_stdout(capture_buffer):
+        exec(code, {"bpy": bpy})
+    value = capture_buffer.getvalue()
+    print(f"execute_bpy_code: {value}")
+    return value
 
 
 def get_objects() -> list[Resource]:
@@ -50,15 +70,3 @@ def get_object(name: str) -> Resource:
         mimeType="application/json",
         text=json.dumps(info),
     )
-
-
-def get_mesh(name: str) -> dict:
-    return {
-        "name": name,
-    }
-
-
-def get_material(name: str) -> dict:
-    return {
-        "name": name,
-    }

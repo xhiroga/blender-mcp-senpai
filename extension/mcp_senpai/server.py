@@ -31,7 +31,7 @@ class Server:
         self.zeroconf = None
         self.service_info = None
 
-    def run(self, default_port=13180):
+    def run(self, default_host="127.0.0.1", default_port=13180):
         self.port = get_port(default_port)
 
         self.name = f"blender-{self.port}"
@@ -41,10 +41,10 @@ class Server:
             self.name,
             self.port,
             {},
-            ["0.0.0.0"],
+            [default_host],
         )
 
-        config = uvicorn.Config(app, host="0.0.0.0", port=self.port, loop="asyncio")
+        config = uvicorn.Config(app, host=default_host, port=self.port, loop="asyncio")
         self.server = uvicorn.Server(config)
 
         # This will block until the server is stopped
@@ -62,4 +62,7 @@ server = Server()
 
 
 if __name__ == "__main__":
-    server.run()
+    try:
+        server.run()
+    finally:
+        server.stop()

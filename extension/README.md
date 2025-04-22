@@ -9,11 +9,19 @@ uv run --env-file .env build.py
 
 ## Debug
 
-```sh
+```console
 # Install extension
 
 ## Linux
 avahi-browse -a | grep blender
+
+# OR directly
+python -m mcp_senpai.server
+wscat -c ws://localhost:13180/ws
+> {"type": "get_resources"}
+...
+> {"type": "get_resource", "resource_type": "objects", "name": "Cube"}
+...
 ```
 
 ## Test

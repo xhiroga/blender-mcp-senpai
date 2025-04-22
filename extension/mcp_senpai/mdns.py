@@ -8,7 +8,8 @@ def register_service(
     properties: dict[str, str],
     parsed_addresses: list[str],
 ):
-    zeroconf = Zeroconf()
+    """NOTE: Since this is a simplified design, redesign if each IP address belongs to a different Network Interface."""
+    zeroconf = Zeroconf(interfaces=parsed_addresses)
     service_info = ServiceInfo(
         type,
         f"{name}.{type}",
@@ -44,6 +45,7 @@ def debug():
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             # This doesn't actually create a connection
             s.connect(("8.8.8.8", 80))
+            print(f"{s.getsockname()=}")
             local_ip = s.getsockname()[0]
             s.close()
             return local_ip

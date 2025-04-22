@@ -228,6 +228,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "pydantic" },
+    { name = "websockets" },
     { name = "zeroconf" },
 ]
 
@@ -244,6 +245,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.115.12" },
     { name = "pydantic", specifier = ">=2.11.3" },
+    { name = "websockets", specifier = ">=15.0.1" },
     { name = "zeroconf", specifier = ">=0.146.3" },
 ]
 

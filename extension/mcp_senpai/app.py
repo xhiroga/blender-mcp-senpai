@@ -1,55 +1,53 @@
-import io
-from contextlib import redirect_stdout
+from typing import Literal
 
-import bpy
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, WebSocket
+from pydantic import BaseModel
 
-from .usecases import get_object, get_objects
-from .utils import mainthreadify
+from .usecases import execute_bpy_code, get_object, get_objects
 
 app = FastAPI()
 
 
-@mainthreadify()
-def execute_bpy_code(code: str):
-    capture_buffer = io.StringIO()
-    with redirect_stdout(capture_buffer):
-        exec(code, {"bpy": bpy})
-    value = capture_buffer.getvalue()
-    print(f"execute_bpy_code: {value}")
-    return value
+class BlenderCommand(BaseModel):
+    type: Literal["get_resources", "get_resource", "execute"]
+    code: str | None = None
+    resource_type: str | None = None
+    name: str | None = None
 
 
-@app.get("/healthz")
-async def healthz():
-    return {
-        "version": bpy.app.version_string,
-        "binary_path": bpy.app.binary_path,
-    }
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
 
+    while True:
+        command = BlenderCommand.model_validate(await websocket.receive_json())
 
-@app.post("/execute")
-async def execute(request: Request):
-    data = await request.json()
-    code = data["code"]
-    print(f"execute: {code}")
-    executed = await execute_bpy_code(code)
-    print(f"executed: {executed}")
-    return {"executed": executed}
+        match command.type:
+            case "get_resources":
+                objects = get_objects()
+                await websocket.send_json(
+                    {
+                        "type": "resources",
+                        "data": {"resources": objects},
+                    }
+                )
 
+            case "get_resource":
+                if command.resource_type == "objects" and command.name:
+                    resource = get_object(command.name)
+                    await websocket.send_json(
+                        {
+                            "type": "resource",
+                            "data": {"resource": resource},
+                        }
+                    )
 
-@app.get("/resources/")
-async def get_resources():
-    objects = get_objects()
-    return {"resources": objects}
+            case "execute":
+                if command.code:
+                    executed = await execute_bpy_code(command.code)
+                    await websocket.send_json(
+                        {"type": "executed", "data": {"executed": executed}}
+                    )
 
-
-@app.get("/resources/{resource_type}/{name}")
-async def get_resource(resource_type: str, name: str):
-    if resource_type == "objects":
-        resource = get_object(name)
-        return {"resource": resource}
-    else:
-        raise HTTPException(
-            status_code=404, detail=f"Resource type '{resource_type}' not supported"
-        )
+            case _:
+                raise ValueError(f"Undefined command: {command}")

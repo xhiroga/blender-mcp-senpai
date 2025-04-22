@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.115.12",
     "pydantic>=2.11.3",
+    "websockets>=15.0.1",
     "zeroconf>=0.146.3",
 ]
 

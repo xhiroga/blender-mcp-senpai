@@ -34,9 +34,10 @@ TODO...
 
 ## Features
 
-- [ ] Indexing Blender documents
-- [ ] Search documents by DuckDB-VSS
-- [ ] Use RAG thruough MCP
-- [ ] Install MCP server by Drag & Drop
+- [x] Indexing Blender documents
+- [x] Search documents by DuckDB-VSS
+- [ ] Use RAG through MCP
+- [x] Install MCP server by Repository
+- [ ] List resources through MCP
 - [ ] Describe Blender version through MCP
 - [ ] Send Blender screenshot through MCP
