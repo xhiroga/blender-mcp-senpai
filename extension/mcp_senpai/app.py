@@ -1,7 +1,7 @@
 from typing import Literal
 
-from fastapi import FastAPI, WebSocket
-from pydantic import BaseModel
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, ValidationError
 
 from .usecases import execute_bpy_code, get_object, get_objects
 
@@ -18,36 +18,45 @@ class BlenderCommand(BaseModel):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    try:
+        while True:
+            try:
+                data = await websocket.receive_json()
+                command = BlenderCommand.model_validate(data)
 
-    while True:
-        command = BlenderCommand.model_validate(await websocket.receive_json())
+                match command.type:
+                    case "get_resources":
+                        objects = get_objects()
+                        await websocket.send_json(
+                            {
+                                "type": "resources",
+                                "data": objects,
+                            }
+                        )
 
-        match command.type:
-            case "get_resources":
-                objects = get_objects()
-                await websocket.send_json(
-                    {
-                        "type": "resources",
-                        "data": {"resources": objects},
-                    }
-                )
+                    case "get_resource":
+                        if command.resource_type == "objects" and command.name:
+                            resource = get_object(command.name)
+                            await websocket.send_json(
+                                {
+                                    "type": "resource",
+                                    "data": resource,
+                                }
+                            )
 
-            case "get_resource":
-                if command.resource_type == "objects" and command.name:
-                    resource = get_object(command.name)
-                    await websocket.send_json(
-                        {
-                            "type": "resource",
-                            "data": {"resource": resource},
-                        }
-                    )
+                    case "execute":
+                        if command.code:
+                            executed = await execute_bpy_code(command.code)
+                            await websocket.send_json(
+                                {"type": "executed", "data": {"executed": executed}}
+                            )
 
-            case "execute":
-                if command.code:
-                    executed = await execute_bpy_code(command.code)
-                    await websocket.send_json(
-                        {"type": "executed", "data": {"executed": executed}}
-                    )
+                    case _:
+                        raise ValueError(f"Undefined command: {command}")
+            except ValidationError as e:
+                print(f"Validation error: {e.errors()}")
 
-            case _:
-                raise ValueError(f"Undefined command: {command}")
+    # Messages at the time of WebSocket abnormal disconnection of the ASGI protocol are processed with `except` instead of `case`, because the disconnection code is binary and not JSON.
+    # ex. {'type': 'websocket.disconnect', 'code': <CloseCode.ABNORMAL_CLOSURE: 1006>, 'reason': ''}
+    except WebSocketDisconnect as e:
+        print(f"WebSocket disconnected with {e.code=}: {e.reason=}")

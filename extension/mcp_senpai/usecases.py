@@ -15,6 +15,10 @@ class Resource(TypedDict):
     text: str
 
 
+class ReadResourceResult(TypedDict):
+    contents: list[Resource]
+
+
 @mainthreadify()
 def execute_bpy_code(code: str):
     capture_buffer = io.StringIO()
@@ -36,7 +40,7 @@ def get_objects() -> list[Resource]:
     ]
 
 
-def get_object(name: str) -> Resource:
+def get_object(name: str) -> ReadResourceResult:
     """
     Return data that can be displayed in the Properties editor.
     """
@@ -64,9 +68,13 @@ def get_object(name: str) -> Resource:
         "properties": properties,
         "modifiers": modifiers,
     }
-    return Resource(
-        uri=f"blender://objects/{name}",
-        name=name,
-        mimeType="application/json",
-        text=json.dumps(info),
+    return ReadResourceResult(
+        contents=[
+            Resource(
+                uri=f"blender://objects/{name}",
+                name=name,
+                mimeType="application/json",
+                text=json.dumps(info),
+            )
+        ]
     )
