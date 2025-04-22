@@ -14,7 +14,7 @@ class Resource(TypedDict):
     mimeType: str
 
 
-class ReadResourceContent(TypedDict):
+class ReadResourceContents(TypedDict):
     content: str
     mime_type: str
 
@@ -40,7 +40,7 @@ def get_objects() -> list[Resource]:
     ]
 
 
-def get_object(name: str) -> list[ReadResourceContent]:
+def get_object(name: str) -> list[ReadResourceContents]:
     """
     Return data that can be displayed in the Properties editor.
     """

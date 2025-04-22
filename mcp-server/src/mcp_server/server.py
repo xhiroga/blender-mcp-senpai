@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 from mcp.server import InitializationOptions
 from mcp.server.lowlevel import NotificationOptions, Server
@@ -43,9 +44,15 @@ async def main(development: bool):
     @server.list_resources()
     async def handle_list_resources() -> list[Resource]:
         await log("debug", "handle_list_resources")
-        return await blender_client.list_resources()
+        return [
+            Resource(
+                uri=cast(AnyUrl, resource["uri"]),
+                name=resource["name"],
+                mimeType=resource["mimeType"],
+            )
+            for resource in await blender_client.list_resources()
+        ]
 
-    # For some reason, returning list[ReadResourceContents] results in an error on the client side.
     @server.read_resource()
     async def handle_read_resource(uri: AnyUrl) -> str:
         await log(
@@ -61,8 +68,7 @@ async def main(development: bool):
             )  # uri.path is like "/Camera"
 
             # TODO: Handling of cases with multiple CONTENTS
-            content = contents[0]
-            return str(content.content)
+            return contents[0]["content"]
 
         raise ValueError("Unsupported resource")
 

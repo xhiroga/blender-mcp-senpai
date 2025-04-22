@@ -1,13 +1,23 @@
 import asyncio
 import json
-from typing import Any, Awaitable, Callable
+from typing import Any, Awaitable, Callable, TypedDict
 
 import websockets
 from mcp import types
-from mcp.server.lowlevel.helper_types import ReadResourceContents
 from websockets.asyncio.client import ClientConnection
 
 from .service_discovery import discover_server
+
+
+class Resource(TypedDict):
+    uri: str
+    name: str
+    mimeType: str
+
+
+class ReadResourceContents(TypedDict):
+    content: str
+    mime_type: str
 
 
 async def stdout(level: types.LoggingLevel, message: str):
@@ -42,7 +52,7 @@ class BlenderClient:
 
         return json.loads(response)
 
-    async def list_resources(self) -> list[types.Resource]:
+    async def list_resources(self) -> list[Resource]:
         response = await self._send_message({"type": "get_resources"})
         return response.get("data", {})
 
