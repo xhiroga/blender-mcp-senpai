@@ -17,7 +17,7 @@
 
 ```sh
 # Paths searched by uvx are relative to the path where npx was run
-npx @modelcontextprotocol/inspector@latest uvx --from . --upgrade mcp-server
+npx @modelcontextprotocol/inspector@latest uvx --from . --upgrade mcp-server --development
 ```
 
 ## Test

@@ -1,15 +1,27 @@
 import asyncio
 import json
-from typing import Any
+from typing import Any, Awaitable, Callable, Union
 
 import websockets
+from mcp import types
 from websockets.asyncio.client import ClientConnection
 
 from .service_discovery import discover_server
 
 
+def stdout(level: types.LoggingLevel, message: str):
+    print(f"{level}: {message}")
+
+
 class BlenderClient:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        log: Union[
+            Callable[[types.LoggingLevel, str], None],
+            Callable[[types.LoggingLevel, str], Awaitable[None]],
+        ] = stdout,
+    ) -> None:
+        self.log = log
         self.websocket: ClientConnection | None = None
 
     async def _ensure_connection(self):
@@ -32,12 +44,16 @@ class BlenderClient:
 
         return json.loads(response)
 
-    async def list_resources(self) -> list[dict[str, Any]]:
+    async def list_resources(self) -> list[types.Resource]:
         response = await self._send_message({"type": "get_resources"})
         return response.get("data", {}).get("resources", [])
 
     # TODO: Maybe we can fix it to get_object, along with extensions.
-    async def get_resource(self, resource_type: str, name: str) -> dict[str, Any]:
+    async def get_resource(self, resource_type: str, name: str) -> types.Resource:
+        if asyncio.iscoroutinefunction(self.log):
+            await self.log("debug", f"get_resource: {resource_type} {name}")
+        else:
+            self.log("debug", f"get_resource: {resource_type} {name}")
         response = await self._send_message(
             {"type": "get_resource", "resource_type": resource_type, "name": name}
         )
