@@ -29,7 +29,7 @@ async def main(development: bool):
     async def log(level: types.LoggingLevel, message: str):
         """
         Since it is not possible to log to stdout, use the logging method provided by MCP.
-        NOTE: To avoid `LookupError: <ContextVar name='request_ctx`, ...> DO NOT use `log()` before `server.run()`.
+        NOTE: To avoid `LookupError: <ContextVar name='request_ctx`, ...>, do NOT use `log()` before `server.run()`.
         """
         if development:
             logging.log(getattr(logging, level.upper()), message)

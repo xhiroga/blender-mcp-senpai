@@ -9,7 +9,7 @@ from websockets.asyncio.client import ClientConnection
 from .service_discovery import discover_server
 
 
-def stdout(level: types.LoggingLevel, message: str):
+async def stdout(level: types.LoggingLevel, message: str):
     print(f"{level}: {message}")
 
 
@@ -43,7 +43,7 @@ class BlenderClient:
 
     async def list_resources(self) -> list[types.Resource]:
         response = await self._send_message({"type": "get_resources"})
-        return response.get("data", {}).get("resources", [])
+        return response.get("data", {})
 
     # TODO: Maybe we can fix it to get_object, along with extensions.
     async def get_resource(self, resource_type: str, name: str) -> types.Resource:
@@ -51,7 +51,7 @@ class BlenderClient:
         response = await self._send_message(
             {"type": "get_resource", "resource_type": resource_type, "name": name}
         )
-        return response.get("data", {}).get("resource", {})
+        return response.get("data", {})
 
 
 async def debug():
