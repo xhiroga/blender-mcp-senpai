@@ -1,4 +1,5 @@
 import logging
+import urllib.parse
 from datetime import datetime
 from pathlib import Path
 from typing import cast
@@ -63,8 +64,9 @@ async def main(development: bool):
             raise ValueError("Unsupported scheme")
 
         if uri.host and uri.path:
+            object_name_url_decoded = urllib.parse.unquote(uri.path[1:])
             contents = await blender_client.get_resource(
-                uri.host, uri.path[1:]
+                uri.host, object_name_url_decoded
             )  # uri.path is like "/Camera"
 
             # TODO: Handling of cases with multiple CONTENTS
