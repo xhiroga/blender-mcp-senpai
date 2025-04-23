@@ -34,6 +34,13 @@ TODO...
 }
 ```
 
+If not working, try to debug with
+
+```sh
+npx @modelcontextprotocol/inspector@latest uvx --refresh --from "git+https://github.com/xhiroga/blender-mcp-senpai#subdirectory=mcp-server" mcp-server --development
+# URLs are enclosed in double quotes to prevent subdirectory specifications from being regarded as comments.
+```
+
 ## Features
 
 - [x] Indexing Blender documents

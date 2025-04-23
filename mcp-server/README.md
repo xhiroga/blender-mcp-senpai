@@ -4,7 +4,6 @@
 
 ```sh
 # Paths searched by uvx are relative to the path where npx was run
-# Maybe sometimes mcp-server is not updated...
 npx @modelcontextprotocol/inspector@latest uvx --with-editable . mcp-server --development
 ```
 
