@@ -1,18 +1,5 @@
 ## MCP Server
 
-## Install
-
-### Local
-
-```json
-"mcpServers": {
-  "blender-mcp-senpai": {
-    "command": "uvx",
-    "args": ["--from", ".", "mcp-server"]
-  }
-}
-```
-
 ## Debug
 
 ```sh

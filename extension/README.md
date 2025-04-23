@@ -16,7 +16,7 @@ uv run --env-file .env build.py
 avahi-browse -a | grep blender
 
 # OR directly
-python -m mcp_senpai.server
+uv run -m mcp_senpai.server
 wscat -c ws://localhost:13180/ws
 > {"type": "get_resources"}
 ...
@@ -33,6 +33,7 @@ uv run python -m pytest
 ## ToDo
 
 - [ ] Keep log files locally.
+- [ ] Sometimes mDNS can be observed from WSL, sometimes not.
 
 ## References
 

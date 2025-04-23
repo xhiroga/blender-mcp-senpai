@@ -24,7 +24,6 @@ TODO...
             "command": "uvx",
             "args": [
                 "--refresh",
-                "--reinstall",
                 "--from",
                 "git+https://github.com/xhiroga/blender-mcp-senpai#subdirectory=mcp-server",
                 "mcp-server",

@@ -6,8 +6,6 @@ import websockets
 from mcp import types
 from websockets.asyncio.client import ClientConnection
 
-from .service_discovery import discover_server
-
 
 class Resource(TypedDict):
     uri: str
@@ -28,19 +26,21 @@ class BlenderClient:
     def __init__(
         self,
         log: Callable[[types.LoggingLevel, str], Awaitable[None]] = stdout,
+        url: str = "ws://127.0.0.1:13180/ws",
     ) -> None:
         self.log = log
+        self.url = url
         self.websocket: ClientConnection | None = None
 
     async def _ensure_connection(self):
         if self.websocket is not None:
             return
 
-        url = await discover_server()
-        if url is None:
-            raise ConnectionError("No server discovered")
+        # self.url = await discover_server()
+        # if self.url is None:
+        #     raise ConnectionError("No server discovered")
 
-        self.websocket = await websockets.connect(url)
+        self.websocket = await websockets.connect(self.url)
 
     async def _send_message(self, message: dict[str, Any]) -> dict[str, Any]:
         await self._ensure_connection()
