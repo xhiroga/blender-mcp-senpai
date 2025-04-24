@@ -34,6 +34,8 @@ TODO...
 }
 ```
 
+NOTE: As of 2025-04-24, Claude Desktop fails when running uvx remotely.The cause is unknown as other clients and local runs succeed.
+
 If not working, try to debug with
 
 ```sh

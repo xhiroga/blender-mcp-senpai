@@ -4,13 +4,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import cast
 
+from mcp import GetPromptResult
 from mcp.server import InitializationOptions
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.stdio import stdio_server
-from mcp.types import LoggingLevel, Resource, TextContent, Tool
+from mcp.types import LoggingLevel, Prompt, PromptMessage, Resource, TextContent, Tool
 from pydantic import AnyUrl
 
 from .blender_client import BlenderClient
+from .system_prompt import SYSTEM_PROMPT
 
 MCP_SERVER_NAME = "blender-mcp-senpai"
 
@@ -46,7 +48,7 @@ async def main(development: bool):
     async def list_tools() -> list[Tool]:
         return [
             Tool(
-                name="execute_code", 
+                name="execute_code",
                 description="Execute code in the current Blender file",
                 inputSchema={
                     "type": "object",
@@ -66,34 +68,32 @@ async def main(development: bool):
                 name="get_object",
                 description="Get details of a specific object in the current Blender file",
                 inputSchema={
-                    "type": "object", 
-                    "properties": {
-                        "name": {"type": "string"}
-                    },
+                    "type": "object",
+                    "properties": {"name": {"type": "string"}},
                     "required": ["name"],
                 },
-            )
+            ),
         ]
 
     @server.call_tool()
     async def call_tool(tool: str, arguments: dict) -> list[TextContent]:
         await log("debug", f"call_tool: {tool=} {arguments=}")
-        
+
         match tool:
             case "execute_code":
                 code = arguments["code"]
                 result = await blender_client.execute_code(code)
                 return [TextContent(type="text", text=str(result))]
-            
+
             case "get_objects":
                 resources = await blender_client.list_resources()
                 return [TextContent(type="text", text=str(resources))]
-            
+
             case "get_object":
                 object_name = arguments["name"]
                 result = await blender_client.get_resource("objects", object_name)
                 return [TextContent(type="text", text=str(result))]
-            
+
             case _:
                 raise ValueError(f"Tool not found: {tool}")
 
@@ -128,6 +128,28 @@ async def main(development: bool):
             return contents[0]["content"]
 
         raise ValueError("Unsupported resource")
+
+    @server.list_prompts()
+    async def list_prompts() -> list[Prompt]:
+        await log("debug", "list_prompts")
+        return [
+            Prompt(
+                name="text_and_image_help",
+                description="Help with text and image",
+                arguments=[],
+            )
+        ]
+
+    @server.get_prompt()
+    async def get_prompt(name: str) -> GetPromptResult:
+        return GetPromptResult(
+            messages=[
+                PromptMessage(
+                    role="user",
+                    content=TextContent(type="text", text=SYSTEM_PROMPT),
+                )
+            ]
+        )
 
     async with stdio_server() as (read_stream, write_stream):
         await server.run(
