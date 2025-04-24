@@ -3,13 +3,13 @@ from typing import Literal
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, ValidationError
 
-from .usecases import execute_bpy_code, get_object, get_objects
+from .usecases import execute_code, get_object, get_objects
 
 app = FastAPI()
 
 
 class BlenderCommand(BaseModel):
-    type: Literal["get_resources", "get_resource", "execute"]
+    type: Literal["get_resources", "get_resource", "execute_code"]
     code: str | None = None
     resource_type: str | None = None
     name: str | None = None
@@ -44,9 +44,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                 }
                             )
 
-                    case "execute":
+                    case "execute_code":
                         if command.code:
-                            executed = await execute_bpy_code(command.code)
+                            executed = await execute_code(command.code)
                             await websocket.send_json(
                                 {"type": "executed", "data": {"executed": executed}}
                             )

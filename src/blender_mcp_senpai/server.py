@@ -7,7 +7,7 @@ from typing import cast
 from mcp.server import InitializationOptions
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.stdio import stdio_server
-from mcp.types import LoggingLevel, Resource
+from mcp.types import LoggingLevel, Resource, TextContent, Tool
 from pydantic import AnyUrl
 
 from .blender_client import BlenderClient
@@ -41,6 +41,28 @@ async def main(development: bool):
             )
 
     blender_client = BlenderClient(log)
+
+    @server.list_tools()
+    async def list_tools() -> list[Tool]:
+        return [
+            Tool(
+                name="execute_code",
+                description="Execute code in the current Blender file",
+                inputSchema={
+                    "type": "object",
+                    "properties": {"code": {"type": "string"}},
+                    "required": ["code"],
+                },
+            )
+        ]
+
+    @server.call_tool()
+    async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+        if name == "execute_code":
+            code = arguments["code"]
+            result = await blender_client.execute_code(code)
+            return [TextContent(type="text", text=str(result))]
+        raise ValueError(f"Tool not found: {name}")
 
     @server.list_resources()
     async def handle_list_resources() -> list[Resource]:

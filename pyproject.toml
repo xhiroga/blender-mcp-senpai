@@ -1,0 +1,13 @@
+[project]
+name = "blender-mcp-senpai"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.11.18",
+    "mcp>=1.6.0",
+    "websockets>=15.0.1",
+    "zeroconf>=0.146.5",
+]
+
+[project.scripts]
+blender-mcp-senpai = "blender_mcp_senpai:main"

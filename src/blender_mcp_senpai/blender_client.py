@@ -66,6 +66,10 @@ class BlenderClient:
         await self.log("debug", f"get_resource: {response=}")
         return response.get("data", {})
 
+    async def execute_code(self, code: str):
+        response = await self._send_message({"type": "execute_code", "code": code})
+        return response.get("data", {})
+
 
 async def debug():
     client = BlenderClient()

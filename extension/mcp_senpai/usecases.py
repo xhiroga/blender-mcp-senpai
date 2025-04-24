@@ -20,7 +20,7 @@ class ReadResourceContents(TypedDict):
 
 
 @mainthreadify()
-def execute_bpy_code(code: str):
+def execute_code(code: str):
     capture_buffer = io.StringIO()
     with redirect_stdout(capture_buffer):
         exec(code, {"bpy": bpy})
