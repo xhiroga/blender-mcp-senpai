@@ -54,8 +54,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     case _:
                         raise ValueError(f"Undefined command: {command}")
-            except ValidationError as e:
-                print(f"Validation error: {e.errors()}")
+            except Exception as e:
+                # I'm most afraid of communication stops, so I'll catch them all.
+                await websocket.send_json(
+                    {"type": "error", "data": {"error": str(e)}}
+                )
 
     # Messages at the time of WebSocket abnormal disconnection of the ASGI protocol are processed with `except` instead of `case`, because the disconnection code is binary and not JSON.
     # ex. {'type': 'websocket.disconnect', 'code': <CloseCode.ABNORMAL_CLOSURE: 1006>, 'reason': ''}
