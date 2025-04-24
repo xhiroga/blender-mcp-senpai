@@ -50,11 +50,25 @@ def download_whls(
     )
 
 
+def get_git_commit_hash() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return ""
+
+
 def generate_blender_manifest():
     with open("blender_manifest_template.toml", mode="r") as f:
         manifest = tomlkit.load(f)
 
     manifest["platforms"] = [platform.metadata for platform in platforms]
+    manifest["commit"] = get_git_commit_hash()
 
     manifest["wheels"] = [
         f"./wheels/{f}"
