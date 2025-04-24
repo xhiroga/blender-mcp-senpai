@@ -25,11 +25,8 @@ TODO...
             "args": [
                 "--refresh",
                 "--from",
-                "git+https://github.com/xhiroga/blender-mcp-senpai#subdirectory=mcp-server",
-                "--with",
-                "mcp[cli]",
-                "--verbose",
-                "mcp-server",
+                "git+https://github.com/xhiroga/blender-mcp-senpai",
+                "blender-mcp-senpai",
                 "--development"
             ]
         }
@@ -40,7 +37,7 @@ TODO...
 If not working, try to debug with
 
 ```sh
-npx @modelcontextprotocol/inspector@latest uvx --refresh --from "git+https://github.com/xhiroga/blender-mcp-senpai#subdirectory=mcp-server" mcp-server --development
+npx @modelcontextprotocol/inspector@latest uvx --refresh --from "git+https://github.com/xhiroga/blender-mcp-senpai@workspace" blender-mcp-senpai --development
 # URLs are enclosed in double quotes to prevent subdirectory specifications from being regarded as comments.
 ```
 
