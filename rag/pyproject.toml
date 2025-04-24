@@ -1,6 +1,6 @@
 [project]
 name = "rag"
-version = "0.0.1"
+version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -9,7 +9,7 @@ dependencies = [
     "gitpython>=3.1.44",
     "pandas>=2.2.3",
     "pyarrow>=19.0.1",
-    "sentence-transformers>=4.0.2",
+    "sentence-transformers>=4.1.0",
 ]
 
 [dependency-groups]
