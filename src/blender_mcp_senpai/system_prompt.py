@@ -19,18 +19,23 @@ SYSTEM_PROMPT = """
 
 次の通りです。
 
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/constrains.png
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/data.png
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/material.png
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/modifiers.png
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/object.png
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/particles.png
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/physics.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/tools.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/render.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/output.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/view_layer.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/scene.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/world.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/collection.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/constrains.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/data.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/material.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/modifiers.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/object.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/particles.png
+- https://xhiroga.github.io/blender-mcp-senpai/assets/icons/physics.png
 
 - https://docs.blender.org/manual/en/latest/_images/interface_window-system_topbar_menus.png
 - https://docs.blender.org/manual/en/latest/_images/interface_window-system_topbar_workspaces.png
 - https://docs.blender.org/manual/en/latest/_images/interface_window-system_topbar_scenes-layers.png
 - https://docs.blender.org/manual/en/latest/_images/interface_window-system_status-bar_ui.png
-
-- https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/screenshots/editor/timeline.png
 """
