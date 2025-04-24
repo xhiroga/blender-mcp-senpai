@@ -57,3 +57,8 @@ npx @modelcontextprotocol/inspector@latest uvx --with-editable . blender-mcp-sen
 - [ ] List resources through MCP
 - [ ] Describe Blender version through MCP
 - [ ] Send Blender screenshot through MCP
+
+## Inspiration
+
+- https://github.com/ahujasid/blender-mcp
+- https://github.com/AIGODLIKE/GenesisCore

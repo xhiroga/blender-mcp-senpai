@@ -59,11 +59,12 @@ class BlenderClient:
     async def get_resource(
         self, resource_type: str, name: str
     ) -> list[ReadResourceContents]:
-        await self.log("debug", f"get_resource: {resource_type=} {name=}")
+        await self.log("info", f"get_resource: {resource_type=} {name=}")
         response = await self._send_message(
             {"type": "get_resource", "resource_type": resource_type, "name": name}
         )
-        await self.log("debug", f"get_resource: {response=}")
+        await self.log("error", f"get_resource: {response=}")
+
         return response.get("data", {})
 
     async def execute_code(self, code: str):

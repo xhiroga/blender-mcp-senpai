@@ -46,23 +46,56 @@ async def main(development: bool):
     async def list_tools() -> list[Tool]:
         return [
             Tool(
-                name="execute_code",
+                name="execute_code", 
                 description="Execute code in the current Blender file",
                 inputSchema={
                     "type": "object",
                     "properties": {"code": {"type": "string"}},
                     "required": ["code"],
                 },
+            ),
+            Tool(
+                name="get_objects",
+                description="List all objects in the current Blender file",
+                inputSchema={
+                    "type": "object",
+                    "properties": {},
+                },
+            ),
+            Tool(
+                name="get_object",
+                description="Get details of a specific object in the current Blender file",
+                inputSchema={
+                    "type": "object", 
+                    "properties": {
+                        "name": {"type": "string"}
+                    },
+                    "required": ["name"],
+                },
             )
         ]
 
     @server.call_tool()
-    async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-        if name == "execute_code":
-            code = arguments["code"]
-            result = await blender_client.execute_code(code)
-            return [TextContent(type="text", text=str(result))]
-        raise ValueError(f"Tool not found: {name}")
+    async def call_tool(tool: str, arguments: dict) -> list[TextContent]:
+        await log("debug", f"call_tool: {tool=} {arguments=}")
+        
+        match tool:
+            case "execute_code":
+                code = arguments["code"]
+                result = await blender_client.execute_code(code)
+                return [TextContent(type="text", text=str(result))]
+            
+            case "get_objects":
+                resources = await blender_client.list_resources()
+                return [TextContent(type="text", text=str(resources))]
+            
+            case "get_object":
+                object_name = arguments["name"]
+                result = await blender_client.get_resource("objects", object_name)
+                return [TextContent(type="text", text=str(result))]
+            
+            case _:
+                raise ValueError(f"Tool not found: {tool}")
 
     @server.list_resources()
     async def handle_list_resources() -> list[Resource]:

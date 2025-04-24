@@ -23,6 +23,7 @@ async def websocket_endpoint(websocket: WebSocket):
             try:
                 data = await websocket.receive_json()
                 command = BlenderCommand.model_validate(data)
+                print(f"{command=}")
 
                 match command.type:
                     case "get_resources":
