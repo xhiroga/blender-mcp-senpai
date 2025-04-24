@@ -1,28 +1,20 @@
 [project]
 name = "extension"
-version = "0.0.1"
+version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Hiroaki Ogasawara", email = "13391129+xhiroga@users.noreply.github.com" }
-]
 requires-python = ">=3.11"
-
 dependencies = [
     "fastapi[standard]>=0.115.12",
     "pydantic>=2.11.3",
     "websockets>=15.0.1",
-    "zeroconf>=0.146.3",
+    "zeroconf>=0.146.5",
 ]
 
 [dependency-groups]
 dev = [
     "bpy>=4.4.0",
-    "fake-bpy-module>=20250412",
+    "fake-bpy-module>=20250423",
     "numpy<2",
-    "pytest>=8.3.5",
     "tomlkit>=0.13.2",
 ]
-
-[tool.pytest.ini_options]
-addopts = "-vv --tb=short -s"
