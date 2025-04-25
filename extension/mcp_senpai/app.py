@@ -33,23 +33,13 @@ async def websocket_endpoint(websocket: WebSocket):
                             await websocket.send_json(result)
 
                     case "get_resources":
-                        objects = get_objects()
-                        await websocket.send_json(
-                            {
-                                "type": "resources",
-                                "data": objects,
-                            }
-                        )
+                        result = get_objects()
+                        await websocket.send_json(result)
 
                     case "get_resource":
                         if command.resource_type == "objects" and command.name:
-                            resource = get_object(command.name)
-                            await websocket.send_json(
-                                {
-                                    "type": "resource",
-                                    "data": resource,
-                                }
-                            )
+                            result = get_object(command.name)
+                            await websocket.send_json(result)
 
                     case "import_file":
                         if command.path:

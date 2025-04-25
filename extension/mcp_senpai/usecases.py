@@ -41,18 +41,21 @@ def execute_code(code: str) -> Result:
         return {"status": "error", "payload": str(e)}
 
 
-def get_objects() -> list[Resource]:
-    return [
-        Resource(
-            uri=f"blender://objects/{name}",
-            name=name,
-            mimeType="application/json",
-        )
-        for name in bpy.data.objects.keys()
-    ]
+def get_objects() -> Result[list[Resource]]:
+    return {
+        "status": "ok",
+        "payload": [
+            Resource(
+                uri=f"blender://objects/{name}",
+                name=name,
+                mimeType="application/json",
+            )
+            for name in bpy.data.objects.keys()
+        ],
+    }
 
 
-def get_object(name: str) -> list[ReadResourceContents]:
+def get_object(name: str) -> Result[list[ReadResourceContents]]:
     """
     Return data that can be displayed in the Properties editor.
     """
@@ -150,12 +153,15 @@ def get_object(name: str) -> list[ReadResourceContents]:
         "properties": properties,
         "modifiers": modifiers,
     }
-    return [
-        {
-            "content": json.dumps(info),
-            "mime_type": "text/plain",
-        }
-    ]
+    return {
+        "status": "ok",
+        "payload": [
+            {
+                "content": json.dumps(info),
+                "mime_type": "text/plain",
+            }
+        ],
+    }
 
 
 @mainthreadify()

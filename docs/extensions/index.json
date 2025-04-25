@@ -43,8 +43,8 @@
         "3.11"
       ],
       "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.0.3/mcp_senpai-0.0.3-macos_arm64.zip",
-      "archive_size": 9832075,
-      "archive_hash": "sha256:b21e171fe33c44b17e5eb77ad09633e5f48470f08d0ac83c7aa7bc66e1622ed0"
+      "archive_size": 9832022,
+      "archive_hash": "sha256:3426563185ba140637c3073e525e0c9a0e76d854f5b8abd3860fe48284008f63"
     },
     {
       "schema_version": "1.0.0",
@@ -65,8 +65,8 @@
         "3.11"
       ],
       "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.0.3/mcp_senpai-0.0.3-linux_x64.zip",
-      "archive_size": 13976197,
-      "archive_hash": "sha256:b57a15dd9acab0ff44b10abc9367e1e7121304d393e0c28751fe6d6fe3f99ff9"
+      "archive_size": 13976144,
+      "archive_hash": "sha256:a1b916ca8494a371af52f5b0a5a996f2a775786ea4ad0640301f137d79af4227"
     },
     {
       "schema_version": "1.0.0",
@@ -87,8 +87,8 @@
         "3.11"
       ],
       "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.0.3/mcp_senpai-0.0.3-macos_x64.zip",
-      "archive_size": 10870964,
-      "archive_hash": "sha256:f771066852709255398eed928a7fc82f2000b71ffa08fed89b8ef44f0c3dce49"
+      "archive_size": 10870911,
+      "archive_hash": "sha256:3fe51051ba94fb25261393f908e5f87664db17c414e72e7fac40c3ab43a9c0b2"
     },
     {
       "schema_version": "1.0.0",
@@ -175,8 +175,8 @@
         "3.11"
       ],
       "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.0.3/mcp_senpai-0.0.3-windows_x64.zip",
-      "archive_size": 7546339,
-      "archive_hash": "sha256:c83db5542b3f0a81cd3547210a00936bde3c0d913d6095af5b8c68e6d5e10c01"
+      "archive_size": 7546287,
+      "archive_hash": "sha256:ecbc9a4b346e22ace1dc668801b1739cccf1cc415b3ce63937e890702c3d4e8b"
     }
   ]
 }

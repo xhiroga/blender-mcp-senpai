@@ -52,9 +52,13 @@ class BlenderClient:
 
         return json.loads(response)
 
+    async def execute_code(self, code: str):
+        response = await self._send_message({"type": "execute_code", "code": code})
+        return response.get("payload", {})
+
     async def list_resources(self) -> list[Resource]:
         response = await self._send_message({"type": "get_resources"})
-        return response.get("data", {})
+        return response.get("payload", {})
 
     async def get_resource(
         self, resource_type: str, name: str
@@ -65,11 +69,11 @@ class BlenderClient:
         )
         await self.log("error", f"get_resource: {response=}")
 
-        return response.get("data", {})
+        return response.get("payload", {})
 
-    async def execute_code(self, code: str):
-        response = await self._send_message({"type": "execute_code", "code": code})
-        return response.get("data", {})
+    async def import_file(self, path: str):
+        response = await self._send_message({"type": "import_file", "path": path})
+        return response.get("payload", {})
 
 
 async def debug():
