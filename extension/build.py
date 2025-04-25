@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import subprocess
@@ -10,6 +11,7 @@ import tomlkit
 PLATFORMS = ["windows-x64", "linux-x64", "macos-arm64", "macos-x64"]
 ZIP_TARGET_DIR = "mcp_senpai"
 OUTPUT_DIR = "output"
+DOCS_EXTENSIONS_DIR = "../docs/extensions"
 
 
 @dataclass
@@ -116,6 +118,7 @@ def build():
 
 def index_json():
     blender_exe = os.environ.get("BLENDER_EXE") or bpy.app.binary_path
+    print(f"{blender_exe=}")
     subprocess.run(
         [
             blender_exe,
@@ -129,6 +132,26 @@ def index_json():
     )
 
 
+def deploy_json():
+    os.makedirs(DOCS_EXTENSIONS_DIR, exist_ok=True)
+
+    with open(f"{OUTPUT_DIR}/index.json", "r") as f:
+        index_data = json.load(f)
+
+    version = get_version()
+
+    for item in index_data.get("data", []):
+        if "archive_url" in item:
+            filename = os.path.basename(item["archive_url"])
+
+            item["archive_url"] = (
+                f"https://github.com/xhiroga/blender-mcp-senpai/releases/download/v{version}/{filename}"
+            )
+
+    with open(f"{DOCS_EXTENSIONS_DIR}/index.json", "w") as f:
+        json.dump(index_data, f, indent=2)
+
+
 def main():
     for platform in platforms:
         download_wheels(dependencies(), "3.11", platform)
@@ -138,6 +161,8 @@ def main():
     build()
 
     index_json()
+
+    deploy_json()
 
 
 if __name__ == "__main__":
