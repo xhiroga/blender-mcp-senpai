@@ -29,10 +29,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 match command.type:
                     case "execute_code":
                         if command.code:
-                            executed = await execute_code(command.code)
-                            await websocket.send_json(
-                                {"type": "executed", "data": {"executed": executed}}
-                            )
+                            result = await execute_code(command.code)
+                            await websocket.send_json(result)
 
                     case "get_resources":
                         objects = get_objects()
@@ -56,15 +54,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     case "import_glb":
                         if command.path:
                             result = await import_glb(command.path)
-                            await websocket.send_json(
-                                {"type": "import_glb", "data": {"result": result}}
-                            )
+                            await websocket.send_json(result)
 
                     case _:
                         raise ValueError(f"Undefined command: {command}")
             except Exception as e:
                 # I'm most afraid of communication stops, so I'll catch them all.
-                await websocket.send_json({"type": "error", "data": {"error": str(e)}})
+                await websocket.send_json({"type": "error", "data": str(e)})
 
     # Messages at the time of WebSocket abnormal disconnection of the ASGI protocol are processed with `except` instead of `case`, because the disconnection code is binary and not JSON.
     # ex. {'type': 'websocket.disconnect', 'code': <CloseCode.ABNORMAL_CLOSURE: 1006>, 'reason': ''}

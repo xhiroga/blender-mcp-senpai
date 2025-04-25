@@ -1,11 +1,19 @@
 import io
 import json
+import os
 from contextlib import redirect_stdout
-from typing import TypedDict
+from typing import Literal, TypedDict, TypeVar
 
 import bpy
 
 from .utils import mainthreadify
+
+T = TypeVar("T")
+
+
+class Result(TypedDict):
+    status: Literal["ok", "error"]
+    payload: T | str
 
 
 class Resource(TypedDict):
@@ -20,13 +28,17 @@ class ReadResourceContents(TypedDict):
 
 
 @mainthreadify()
-def execute_code(code: str):
-    capture_buffer = io.StringIO()
-    with redirect_stdout(capture_buffer):
-        exec(code, {"bpy": bpy})
-    value = capture_buffer.getvalue()
-    print(f"execute_bpy_code: {value}")
-    return value
+def execute_code(code: str) -> Result:
+    try:
+        capture_buffer = io.StringIO()
+        with redirect_stdout(capture_buffer):
+            exec(code, {"bpy": bpy})
+        execute_bpy_code = capture_buffer.getvalue()
+        print(f"{execute_bpy_code=}")
+        return {"status": "ok", "payload": execute_bpy_code}
+
+    except Exception as e:
+        return {"status": "error", "payload": str(e)}
 
 
 def get_objects() -> list[Resource]:
@@ -144,3 +156,21 @@ def get_object(name: str) -> list[ReadResourceContents]:
             "mime_type": "text/plain",
         }
     ]
+
+
+@mainthreadify()
+def import_glb(glb_path: str) -> Result[list[ReadResourceContents]]:
+    try:
+        if not os.path.exists(glb_path):
+            return {"status": "error", "payload": f"{glb_path=} not found"}
+
+        bpy.ops.import_scene.gltf(filepath=glb_path)
+        imported_objects = bpy.context.selected_objects
+
+        payload = []
+        for obj in imported_objects:
+            payload.extend(get_object(obj.name))
+        return {"status": "ok", "payload": payload}
+
+    except Exception as e:
+        return {"status": "error", "payload": str(e)}

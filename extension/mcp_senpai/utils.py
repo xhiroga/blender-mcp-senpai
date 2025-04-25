@@ -31,6 +31,8 @@ def mainthreadify(
 
     Therefore, the update process using `bpy` is done in the main thread.
     Python has a knack for waiting for `future` across threads, which is summarized in this function.
+
+    NOTE: All exceptions in functions executed in the main thread MUST be caught!!!
     """
 
     def decorator(function: Callable[P, T]) -> Callable[P, Coroutine[Any, Any, T]]:
@@ -42,7 +44,7 @@ def mainthreadify(
                 lambda: conc_future.set_result(function(*args, **kwargs))
             )
             future = asyncio.wrap_future(conc_future, loop=loop)
-            print(f"future: {future}")
+            print(f"{future=}")
             return future
 
         return wrapper
