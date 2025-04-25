@@ -6,13 +6,17 @@ SYSTEM_PROMPT = """
 
 ### 1
 
-オブジェクトの位置を修正するには、Propertiesエディタからオブジェクト ![object icon](https://raw.githubusercontent.com/xhiroga/blender-mcp-senpai/refs/heads/main/assets/icons/object.png) を選択し、LocationのX, Y, Zの値を変更してください。
+オブジェクトの位置を修正するには、Propertiesエディタからオブジェクト ![object icon](https://xhiroga.github.io/blender-mcp-senpai/assets/icons/object.png) を選択し、LocationのX, Y, Zの値を変更してください。
 
 ### 2
 
 アニメーションを製作するには、ワークスペースをアニメーションに切り替えます。
 
 ![Workspaces](https://docs.blender.org/manual/en/latest/_images/interface_window-system_topbar_workspaces.png)
+
+### 3
+
+フレームレートを調整するために、Output ![output icon](https://xhiroga.github.io/blender-mcp-senpai/assets/icons/output.png) を選択してください。
 
 
 ## 利用可能な画像

@@ -55,6 +55,76 @@ def get_object(name: str) -> list[ReadResourceContents]:
     }
     # Currently NOT supported: Delta transform, Relations, Instancing, Motion paths, shading, Visibility, Viewport Display, Line Art, Animation, Custom Properties
 
+    def kfs(fcurve: bpy.types.FCurve):
+        return [
+            {
+                "frame": keyframe.co[0],
+                "value": keyframe.co[1],
+                "interpolation": keyframe.interpolation,
+                "easing": keyframe.easing,
+            }
+            for keyframe in fcurve.keyframe_points
+        ]
+
+    if object.animation_data:
+        animation = {}
+        if object.animation_data.action:
+            action = object.animation_data.action
+            action_value = {
+                "name": object.animation_data.action.name,
+                "frame_range": list(object.animation_data.action.frame_range),
+                **(
+                    {"x_location": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("location", index=0)) is not None
+                    else {}
+                ),
+                **(
+                    {"y_location": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("location", index=1)) is not None
+                    else {}
+                ),
+                **(
+                    {"z_location": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("location", index=2)) is not None
+                    else {}
+                ),
+                **(
+                    {"x_euler_rotation": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("rotation_euler", index=0))
+                    is not None
+                    else {}
+                ),
+                **(
+                    {"y_euler_rotation": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("rotation_euler", index=1))
+                    is not None
+                    else {}
+                ),
+                **(
+                    {"z_euler_rotation": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("rotation_euler", index=2))
+                    is not None
+                    else {}
+                ),
+                **(
+                    {"x_scale": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("scale", index=0)) is not None
+                    else {}
+                ),
+                **(
+                    {"y_scale": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("scale", index=1)) is not None
+                    else {}
+                ),
+                **(
+                    {"z_scale": kfs(fcurve)}
+                    if (fcurve := action.fcurves.find("scale", index=2)) is not None
+                    else {}
+                ),
+            }
+            animation["action"] = action_value
+        properties["animation"] = animation
+
     modifiers = []
     for modifier in object.modifiers:
         modifiers.append(
