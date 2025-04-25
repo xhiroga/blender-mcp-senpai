@@ -1,5 +1,7 @@
 # Blender MCP Senpai
 
+![Logo](docs/assets/logo/logo.png)
+
 Your senpai (先輩, mentor) of Blener.
 
 ## About
