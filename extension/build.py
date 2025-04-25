@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import tomllib
 from dataclasses import dataclass
@@ -31,14 +32,37 @@ def dependencies() -> list[str]:
         return [dep.split(">=")[0] for dep in pyproject["project"]["dependencies"]]
 
 
-def download_whls(
+def get_version() -> str:
+    with open("pyproject.toml", mode="rb") as f:
+        pyproject = tomllib.load(f)
+        return pyproject["project"]["version"]
+
+
+def get_pip() -> str:
+    if shutil.which("pip3") is not None:
+        return "pip3"
+    return "pip"
+
+
+def get_git_commit_hash() -> str:
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        )
+        return result.stdout.strip()
+    except subprocess.CalledProcessError:
+        return ""
+
+
+def download_wheels(
     requirements: list[str],
     python_version: str,
     platform: Platform,
 ):
+    pip = get_pip()
     subprocess.run(
         [
-            "pip",
+            pip,
             "download",
             *requirements,
             "-d",
@@ -50,25 +74,13 @@ def download_whls(
     )
 
 
-def get_git_commit_hash() -> str:
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        return ""
-
-
 def generate_blender_manifest():
     with open("blender_manifest_template.toml", mode="r") as f:
         manifest = tomlkit.load(f)
 
     manifest["platforms"] = [platform.metadata for platform in platforms]
     manifest["commit"] = get_git_commit_hash()
+    manifest["version"] = get_version()
 
     manifest["wheels"] = [
         f"./wheels/{f}"
@@ -83,8 +95,9 @@ def generate_blender_manifest():
 def build():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # On WSL, bpy.app.binary_path is empty.
+    # On macOS or WSL, bpy.app.binary_path is empty.
     blender_exe = os.environ.get("BLENDER_EXE") or bpy.app.binary_path
+    print(f"{blender_exe=}")
     subprocess.run(
         [
             blender_exe,
@@ -115,9 +128,10 @@ def index_json():
         ],
     )
 
+
 def main():
     for platform in platforms:
-        download_whls(dependencies(), "3.11", platform)
+        download_wheels(dependencies(), "3.11", platform)
 
     generate_blender_manifest()
 

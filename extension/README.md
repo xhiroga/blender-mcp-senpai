@@ -3,7 +3,7 @@
 ## Build
 
 ```sh
-# TODO: Dealing with the complication of extensions in Bledner, which is launched for builds.
+# TODO: Dealing with the complication of extensions in Blender, which is launched for builds.
 uv run --env-file .env build.py
 ```
 

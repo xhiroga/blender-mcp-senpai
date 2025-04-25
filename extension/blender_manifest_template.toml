@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "mcp_senpai"
-version = "0.0.1"
+version = ""
 commit = ""
 name = "MCP Senpai"
 tagline = "Senpai (menter) in your use of Blender, using the MCP protocol"
