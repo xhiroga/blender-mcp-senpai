@@ -24,7 +24,7 @@ wscat -c ws://localhost:13180/ws
 ...
 > {"type": "execute_code", "code": "import bpy; bpy.data.objects['Cube'].location = (1, 2, 3)"}
 ...
-> {"type": "import_glb", "path": "path/to/your/glb/file.glb"}
+> {"type": "import_file", "path": "path/to/your/glb/file.glb"}
 ```
 
 ## Test

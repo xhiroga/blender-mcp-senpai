@@ -26,11 +26,12 @@ TODO...
         "blender-mcp-senpai": {
             "command": "uvx",
             "args": [
-                "--refresh",
                 "--from",
                 "git+https://github.com/xhiroga/blender-mcp-senpai",
-                "blender-mcp-senpai",
-                "--development"
+                "--refresh",
+                "--python",
+                "3.11",
+                "blender-mcp-senpai"
             ]
         }
     }
@@ -42,7 +43,7 @@ NOTE: As of 2025-04-24, Claude Desktop fails when running uvx remotely.The cause
 If not working, try to debug with
 
 ```sh
-npx @modelcontextprotocol/inspector@latest uvx --refresh --from "git+https://github.com/xhiroga/blender-mcp-senpai" blender-mcp-senpai --development
+npx @modelcontextprotocol/inspector@latest uvx --from "git+https://github.com/xhiroga/blender-mcp-senpai" --refresh --python 3.11 blender-mcp-senpai
 # URLs are enclosed in double quotes to prevent subdirectory specifications from being regarded as comments.
 ```
 
@@ -50,7 +51,7 @@ npx @modelcontextprotocol/inspector@latest uvx --refresh --from "git+https://git
 
 ```sh
 # Paths searched by uvx are relative to the path where npx was run
-npx @modelcontextprotocol/inspector@latest uvx --with-editable . blender-mcp-senpai --development
+npx @modelcontextprotocol/inspector@latest uvx --with-editable . --python 3.11 blender-mcp-senpai
 ```
 
 ## Features
