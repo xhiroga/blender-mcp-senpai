@@ -1,0 +1,6 @@
+@baseUrl = https://api.sketchfab.com/v3
+
+### Search models
+GET {{baseUrl}}/search?q=tree&type=models&downloadable=true
+Authorization: Token {{$dotenv SKETCHFAB_API_TOKEN}}
+Content-Type: application/json
