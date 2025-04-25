@@ -159,17 +159,31 @@ def get_object(name: str) -> list[ReadResourceContents]:
 
 
 @mainthreadify()
-def import_glb(glb_path: str) -> Result[list[ReadResourceContents]]:
+def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
     try:
-        if not os.path.exists(glb_path):
-            return {"status": "error", "payload": f"{glb_path=} not found"}
+        if not os.path.exists(file_path):
+            return {"status": "error", "payload": f"{file_path=} not found"}
 
-        bpy.ops.import_scene.gltf(filepath=glb_path)
+        file_ext = os.path.splitext(file_path)[1].lower()
+
+        # ファイル形式に応じたインポート処理
+        if file_ext in [".glb", ".gltf"]:
+            bpy.ops.import_scene.gltf(filepath=file_path)
+        elif file_ext == ".obj":
+            bpy.ops.import_scene.obj(filepath=file_path)
+        elif file_ext == ".fbx":
+            bpy.ops.import_scene.fbx(filepath=file_path)
+        else:
+            return {
+                "status": "error",
+                "payload": f"Unsupported file format: {file_ext}",
+            }
+
         imported_objects = bpy.context.selected_objects
-
         payload = []
         for obj in imported_objects:
             payload.extend(get_object(obj.name))
+
         return {"status": "ok", "payload": payload}
 
     except Exception as e:

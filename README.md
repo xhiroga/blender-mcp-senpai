@@ -16,6 +16,7 @@ TODO...
 - Go to `Edit` > `Preferences` > `Get Extensions` > `Repositories` > `+` > `Add Remote Repository`
 - Add `https://xhiroga.github.io/blender-mcp-senpai/extensions/index.json`
 - Search `MCP Senpai` and install it
+- `Add-ons` > `MCP Senpai` > Enable it
 
 ### To Claude / Cursor / Other AI Agents
 

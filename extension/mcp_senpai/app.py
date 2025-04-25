@@ -3,13 +3,13 @@ from typing import Literal
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 
-from .usecases import execute_code, get_object, get_objects, import_glb
+from .usecases import execute_code, get_object, get_objects, import_file
 
 app = FastAPI()
 
 
 class BlenderCommand(BaseModel):
-    type: Literal["get_resources", "get_resource", "execute_code", "import_glb"]
+    type: Literal["get_resources", "get_resource", "execute_code", "import_file"]
     code: str | None = None
     resource_type: str | None = None
     name: str | None = None
@@ -51,9 +51,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                 }
                             )
 
-                    case "import_glb":
+                    case "import_file":
                         if command.path:
-                            result = await import_glb(command.path)
+                            result = await import_file(command.path)
                             await websocket.send_json(result)
 
                     case _:
