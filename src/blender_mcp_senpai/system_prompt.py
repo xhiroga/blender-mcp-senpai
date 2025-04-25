@@ -42,4 +42,7 @@ SYSTEM_PROMPT = """
 - https://docs.blender.org/manual/en/latest/_images/interface_window-system_topbar_workspaces.png
 - https://docs.blender.org/manual/en/latest/_images/interface_window-system_topbar_scenes-layers.png
 - https://docs.blender.org/manual/en/latest/_images/interface_window-system_status-bar_ui.png
+
+- https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/select-editor-type.gif
+- https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/timeline.png
 """
