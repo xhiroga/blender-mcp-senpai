@@ -73,6 +73,15 @@ async def main(development: bool):
                     "required": ["name"],
                 },
             ),
+            Tool(
+                name="import_file",
+                description="Import a file into the current Blender file",
+                inputSchema={
+                    "type": "object",
+                    "properties": {"path": {"type": "string"}},
+                    "required": ["path"],
+                },
+            ),
         ]
 
     @server.call_tool()
@@ -92,6 +101,11 @@ async def main(development: bool):
             case "get_object":
                 object_name = arguments["name"]
                 result = await blender_client.get_resource("objects", object_name)
+                return [TextContent(type="text", text=str(result))]
+
+            case "import_file":
+                file_path = arguments["path"]
+                result = await blender_client.import_file(file_path)
                 return [TextContent(type="text", text=str(result))]
 
             case _:
