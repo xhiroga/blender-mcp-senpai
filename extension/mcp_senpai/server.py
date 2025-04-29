@@ -6,6 +6,7 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 
 from .app import app
+from .chat_interface import chat_interface
 from .mdns import register_service, unregister_service
 
 
@@ -23,21 +24,6 @@ def get_port(default_port=None):
         s.bind(("", 0))
         s.listen(1)
         return s.getsockname()[1]
-
-
-def create_chat_interface():
-    """ChatInterfaceを作成する関数"""
-
-    def chat_function(message, history):
-        return f"あなたは「{message}」と言いました。Blenderとの連携機能は開発中です。"
-
-    chat_interface = gr.ChatInterface(
-        chat_function,
-        title="Blender MCP Senpai",
-        description="BlenderとAIのコラボレーションツール",
-        theme="soft",
-    )
-    return chat_interface
 
 
 class Server:
@@ -78,8 +64,6 @@ class Server:
             allow_headers=["*"],
         )
 
-        # Gradioのインターフェースを作成してFastAPIアプリにマウント
-        chat_interface = create_chat_interface()
         gradio_app = gr.mount_gradio_app(app, chat_interface, path="/")
 
         config = uvicorn.Config(
