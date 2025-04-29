@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 import subprocess
 import tomllib
 from dataclasses import dataclass
@@ -31,19 +30,13 @@ platforms = [windows_x64, linux_x64, macos_arm, macos_intel]
 def dependencies() -> list[str]:
     with open("pyproject.toml", mode="rb") as f:
         pyproject = tomllib.load(f)
-        return [dep.split(">=")[0] for dep in pyproject["project"]["dependencies"]]
+        return pyproject["project"]["dependencies"]
 
 
 def get_version() -> str:
     with open("pyproject.toml", mode="rb") as f:
         pyproject = tomllib.load(f)
         return pyproject["project"]["version"]
-
-
-def get_pip() -> str:
-    if shutil.which("pip3") is not None:
-        return "pip3"
-    return "pip"
 
 
 def get_git_commit_hash() -> str:
@@ -61,10 +54,9 @@ def download_wheels(
     python_version: str,
     platform: Platform,
 ):
-    pip = get_pip()
     subprocess.run(
         [
-            pip,
+            "pip",
             "download",
             *requirements,
             "-d",
