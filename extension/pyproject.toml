@@ -1,10 +1,11 @@
 [project]
 name = "extension"
-version = "0.0.3"
+version = "0.1.0"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.115.12",
+    "gradio>=5.27.1",
     "pydantic>=2.11.3",
     "websockets>=15.0.1",
     "zeroconf>=0.146.5",
