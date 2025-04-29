@@ -1,3 +1,4 @@
+import asyncio
 import socket
 
 import gradio as gr
@@ -49,6 +50,13 @@ class Server:
         self.service_info = None
 
     def run(self, default_host="127.0.0.1", default_port=13180):
+        # In Python, there is no default event loop except for main thread.
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
         self.port = get_port(default_port)
 
         self.name = f"blender-{self.port}"
