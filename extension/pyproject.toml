@@ -6,6 +6,7 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.115.12",
     "gradio>=5.27.1",
+    "litellm==1.67.2",     # https://github.com/BerriAI/litellm/issues?q=is%3Aissue%20state%3Aopen%20enterprise
     "pydantic>=2.11.3",
     "websockets>=15.0.1",
     "zeroconf>=0.146.5",
