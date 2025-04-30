@@ -108,11 +108,29 @@ with gr.Blocks(title="Blender MCP Senpai", theme="soft") as chat_interface:
 
     with gr.Tabs():
         with gr.TabItem("チャット"):
+            with gr.Row():
+                model_selector = gr.Dropdown(
+                    choices=models["openai"],
+                    value=current_model_name,
+                    label="使用するモデル",
+                    container=False,
+                )
             chatbot = gr.ChatInterface(
                 chat_function,
                 title="",
                 description="",
                 type="messages",
+            )
+
+            def update_current_model(model_name: str):
+                global current_model_name
+                current_model_name = model_name
+                return f"モデルを{model_name}に変更しました"
+
+            model_selector.change(
+                fn=update_current_model,
+                inputs=[model_selector],
+                outputs=[gr.Textbox(visible=False)],
             )
 
         with gr.TabItem("API設定"):
@@ -128,11 +146,6 @@ with gr.Blocks(title="Blender MCP Senpai", theme="soft") as chat_interface:
                 api_key_inputs[provider] = gr.Textbox(
                     label=f"{provider.capitalize()} APIキー", type="password"
                 )
-            model_name_input = gr.Dropdown(
-                choices=models["openai"],
-                value="gpt-3.5-turbo",
-                label="デフォルトモデル",
-            )
             save_button = gr.Button("設定を保存")
             status_output = gr.Textbox(label="ステータス", interactive=False)
 
@@ -141,7 +154,6 @@ with gr.Blocks(title="Blender MCP Senpai", theme="soft") as chat_interface:
                 inputs=[
                     *[api_key_inputs[p] for p in models.keys()],
                     enabled_models_input,
-                    model_name_input,
                 ],
                 outputs=status_output,
             )
