@@ -1,5 +1,5 @@
-import threading
 import os
+import threading
 import tomllib
 
 import bpy
@@ -26,7 +26,9 @@ def register():
     The screen will be white until the layout screen is displayed.
     """
     manifest = read_manifest()
-    print(f"Hello from extension! Blender {bpy.app.version_string} | Extension v{manifest.get('version', 'unknown')} | Git commit: {manifest.get('commit', 'unknown')}")
+    print(
+        f"Hello from extension! Blender {bpy.app.version_string} | Extension v{manifest.get('version', 'unknown')} | Git commit: {manifest.get('commit', 'unknown')}"
+    )
 
     bpy.app.timers.register(execute_queued_functions)
     threading.Thread(target=server.run).start()

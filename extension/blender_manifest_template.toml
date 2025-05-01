@@ -1,9 +1,9 @@
 schema_version = "1.0.0"
 
-id = "mcp_senpai"
+id = "blender_senpai"
 version = ""
 commit = ""
-name = "MCP Senpai"
+name = "Blender Senpai"
 tagline = "Senpai (menter) in your use of Blender, using the MCP protocol"
 maintainer = "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>"
 type = "add-on"
