@@ -26,7 +26,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         "tab_api": "API設定",
         "label_model": "モデル",
         "label_api_key": "APIキー",
-        "label_verify": "検証",
+        "label_verify": "登録",
         "label_status": "ステータス",
         "label_save": "設定を保存",
         "msg_api_key_required": "設定タブでAPIキーを設定してください。",

@@ -1,6 +1,7 @@
 import asyncio
 import concurrent.futures
 import queue
+from functools import wraps
 from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
 
 T = TypeVar("T")
@@ -36,6 +37,7 @@ def mainthreadify(
     """
 
     def decorator(function: Callable[P, T]) -> Callable[P, Coroutine[Any, Any, T]]:
+        @wraps(function)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> Coroutine[Any, Any, T]:
             print(f"decorator: {function.__name__}")
             loop = asyncio.get_running_loop()
