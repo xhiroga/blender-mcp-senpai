@@ -6,8 +6,8 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 
 from .app import app
-from .chat_interface import chat_interface
 from .mdns import register_service, unregister_service
+from .webui import interface
 
 
 def get_port(default_port=None):
@@ -64,7 +64,7 @@ class Server:
             allow_headers=["*"],
         )
 
-        gradio_app = gr.mount_gradio_app(app, chat_interface, path="/")
+        gradio_app = gr.mount_gradio_app(app, interface, path="/")
 
         config = uvicorn.Config(
             gradio_app, host=default_host, port=self.port, loop="asyncio"
