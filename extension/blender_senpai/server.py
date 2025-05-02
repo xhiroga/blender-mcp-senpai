@@ -79,6 +79,8 @@ class Server:
             unregister_service(self.zeroconf, self.service_info)
 
         if self.server:
+            # If do not set force_exit, Uvicorn will not exit until the connection is closed when the browser opens the Gradio page.
+            self.server.force_exit = True
             self.server.should_exit = True
 
 

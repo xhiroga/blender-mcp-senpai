@@ -35,11 +35,9 @@ uv run python -m pytest
 
 ## ToDo
 
-- [ ] Keep log files locally.
-- [ ] Sometimes mDNS can be observed from WSL, sometimes not.
-- [ ] i18n for embedded UI.
-- [ ] Store chat history.
 - [ ] Embed logo.
+- [ ] Store chat history and API keys securely.
+- [ ] Sometimes mDNS can be observed from WSL, sometimes not.
 
 ## References
 
