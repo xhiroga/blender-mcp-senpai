@@ -118,7 +118,7 @@ async def completion(
     followup = await litellm.acompletion(
         model=model, api_key=api_key, messages=messages
     )
-    logger.info(f"acompletion: followup_raw_response={str(followup)[:200]}")
+    logger.info(f"completion: followup_raw_response={str(followup)[:200]}")
     follow_choice = followup["choices"][0]["message"]
     if (content := follow_choice.get("content")) is not None:
         return content.strip()

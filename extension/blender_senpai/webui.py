@@ -108,6 +108,7 @@ async def chat_function(
     `anyio.to_thread.run_sync(fn, *args, **kwargs)  # Code is for illustration`
     Therefore, callbacks that indirectly operate on `bpy` should be written as asynchronous functions.
     """
+    logger.info(f"chat_function: {message=}, {history=}, {state=}, {request=}")
 
     conversation_id = state.current_conversation_id
     HistoryRepository.create(conversation_id, "user", message)
@@ -131,6 +132,7 @@ async def chat_function(
         history=history,
         lang=lang,
     )
+    logger.info(f"chat_function: {assistant_message=}")
     return assistant_message
 
 
