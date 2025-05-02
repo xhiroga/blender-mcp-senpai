@@ -52,8 +52,8 @@ git tag v$VERSION
 git push
 git push --tags
 gh release create v$VERSION --generate-notes
+echo "Upload zip file to https://github.com/xhiroga/blender-mcp-senpai/releases/edit/v$VERSION"
 ```
-
 
 ## References
 
