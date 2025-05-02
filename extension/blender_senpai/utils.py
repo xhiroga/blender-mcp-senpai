@@ -42,7 +42,7 @@ def mainthreadify(
     def decorator(function: Callable[P, T]) -> Callable[P, Any]:
         @wraps(function)
         def wrapper(*args: P.args, **kwargs: P.kwargs):
-            logger.debug(f"mainthreadify: {function.__name__}, {args=}, {kwargs=}")
+            logger.debug(f"{function.__name__}, {args=}, {kwargs=}")
 
             conc_future: concurrent.futures.Future[T] = concurrent.futures.Future()
             execution_queue.put(
@@ -51,19 +51,19 @@ def mainthreadify(
 
             try:
                 loop = asyncio.get_running_loop()
-                logger.debug("mainthreadify: Running inside existing event loop")
+                logger.debug("Running inside existing event loop")
 
                 future = asyncio.wrap_future(conc_future, loop=loop)
-                logger.debug(f"mainthreadify: {function.__name__}, {future=}")
+                logger.debug(f"{function.__name__}, {future=}")
                 return future
 
             except RuntimeError:
                 # Consideration for cases where Starlette registers synchronous functions in worker threads, etc.
                 # They are called from a separate thread that does not have an event loop.
-                logger.warning("mainthreadify: No running event loop detected")
+                logger.warning("No running event loop detected")
 
                 result: T = conc_future.result(timeout)
-                logger.debug(f"mainthreadify: {function.__name__}, {result=}")
+                logger.debug(f"{function.__name__}, {result=}")
                 return result
 
         return wrapper

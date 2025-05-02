@@ -13,7 +13,8 @@ def configure(mode: MODES = "extension"):
         "disable_existing_loggers": False,
         "formatters": {
             "logfmt": {
-                "format": "%(asctime)s level=%(levelname)s logger=%(name)s msg=%(message)s",
+                # logfmt is a key=value format used by Heroku and others.
+                "format": "%(asctime)s level=%(levelname)s logger=%(name)s func=%(funcName)s msg=%(message)s",
                 "datefmt": "%Y-%m-%dT%H:%M:%S%z",
             },
         },

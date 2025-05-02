@@ -108,7 +108,7 @@ async def chat_function(
     `anyio.to_thread.run_sync(fn, *args, **kwargs)  # Code is for illustration`
     Therefore, callbacks that indirectly operate on `bpy` should be written as asynchronous functions.
     """
-    logger.info(f"chat_function: {message=}, {history=}, {state=}, {request=}")
+    logger.info(f"{message=}, {history=}, {state=}, {request=}")
 
     conversation_id = state.current_conversation_id
     HistoryRepository.create(conversation_id, "user", message)
@@ -124,7 +124,7 @@ async def chat_function(
         return t("msg_api_key_required", lang)
 
     model = f"{provider}/{state.current_model['model']}"
-    logger.info(f"chat_function#litellm.completion: {model=}")
+    logger.info(f"{model=}")
     assistant_message = await completion(
         model=model,
         api_key=api_key,
@@ -134,7 +134,7 @@ async def chat_function(
     )
     HistoryRepository.create(conversation_id, "assistant", assistant_message)
 
-    logger.info(f"chat_function: {assistant_message=}")
+    logger.info(f"{assistant_message=}")
     return assistant_message
 
 
@@ -146,9 +146,7 @@ def register_api_key_with(provider: Provider) -> Handler:
     def register_api_key(
         state: State, api_key: str, current_model: str, _request: gr.Request
     ) -> tuple[State, str, bool, gr.Dropdown]:
-        logger.info(
-            f"register_api_key: {provider=}, api_key={api_key[:5]}..., {current_model=}"
-        )
+        logger.info(f"{provider=}, api_key={api_key[:5]}..., {current_model=}")
         try:
             default_model = next(
                 filter(
@@ -156,7 +154,6 @@ def register_api_key_with(provider: Provider) -> Handler:
                 )
             )
             model = f"{provider}/{default_model['model']}"
-            logger.info(f"register_api_key#litellm.completion: {model=}")
             litellm.completion(
                 model=model,
                 api_key=api_key,
@@ -192,7 +189,7 @@ def register_api_key_with(provider: Provider) -> Handler:
 
             # AttributeError: 'Dropdown' object has no attribute 'value'
             logger.info(
-                f"register_api_key: {masked(new_state)=}, {result=}, {is_registered=}, {model_selector.change=}"
+                f"{masked(new_state)=}, {result=}, {is_registered=}, {model_selector.change=}"
             )
             return new_state, result, is_registered, model_selector
 

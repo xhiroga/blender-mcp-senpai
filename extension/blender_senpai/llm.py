@@ -56,7 +56,7 @@ async def completion(
     history: list[GradioHistoryMessage],
     lang: Lang,
 ) -> str:
-    logger.info(f"completion: {model=} {message[:30]=} {history[-3:]=} {lang=}")
+    logger.info(f"{model=} {message[:30]=} {history[-3:]=} {lang=}")
     messages = _build_litellm_messages_from_gradio_history(message, history, lang)
 
     raw_response = await litellm.acompletion(
@@ -66,7 +66,7 @@ async def completion(
         tools=tools,
         tool_choice="auto",
     )
-    logger.info(f"acompletion: raw_response={str(raw_response)[:200]}")
+    logger.info(f"{str(raw_response)=}")
 
     first_choice = raw_response["choices"][0]["message"]
     if (content := first_choice.get("content")) is not None:
@@ -76,12 +76,7 @@ async def completion(
     if tool_calls is None:
         return ""
 
-    assistant_message: dict[str, Any] = {
-        "role": "assistant",
-        "content": "",
-        "tool_calls": [],
-    }
-    messages.append(assistant_message)
+    messages.append(first_choice)
 
     for tool_call in tool_calls:
         try:
@@ -94,7 +89,7 @@ async def completion(
             arguments_json = tool_call.function.arguments
             arguments_dict = json.loads(arguments_json or "{}")
 
-            logger.info(f"tool_call: {function_name=} {arguments_dict=}")
+            logger.info(f"{function_name=} {arguments_dict=}")
             maybe_result = function_to_call(**arguments_dict)
             # If result is awaitable, await it
             tool_result = (
@@ -103,7 +98,7 @@ async def completion(
                 else maybe_result
             )
         except Exception as e:
-            logger.exception(f"tool_call: {function_name=}, {e=}")
+            logger.exception(f"{function_name=}, {e=}")
             tool_result = {"status": "error", "payload": str(e)}
 
         messages.append(
@@ -118,7 +113,7 @@ async def completion(
     followup = await litellm.acompletion(
         model=model, api_key=api_key, messages=messages
     )
-    logger.info(f"completion: followup_raw_response={str(followup)[:200]}")
+    logger.info(f"{str(followup)=}")
     follow_choice = followup["choices"][0]["message"]
     if (content := follow_choice.get("content")) is not None:
         return content.strip()

@@ -64,17 +64,17 @@ class ReadResourceContents(TypedDict):
 @mainthreadify()
 def execute_code(code: str) -> Result:
     """Execute the given Python code in Blender and return the standard output."""
-    logger.info(f"execute_code: {code[:100]=}")
+    logger.info(f"{code=}")
     try:
         capture_buffer = io.StringIO()
         with redirect_stdout(capture_buffer):
             exec(code, {"bpy": bpy})
         execute_bpy_code = capture_buffer.getvalue()
-        logger.info(f"execute_code: {execute_bpy_code[:100]=}")
+        logger.info(f"{execute_bpy_code=}")
         return {"status": "ok", "payload": execute_bpy_code}
 
     except Exception as e:
-        logger.error(f"execute_code: {e}")
+        logger.error(f"{e}")
         return {"status": "error", "payload": str(e)}
 
 
@@ -87,7 +87,6 @@ def execute_code(code: str) -> Result:
 )
 def get_objects() -> Result[list[Resource]]:
     """Get a list of objects in the current Blender scene."""
-    logger.info("get_objects")
     resources = []
     for name in bpy.data.objects.keys():
         resources.append(
@@ -97,7 +96,7 @@ def get_objects() -> Result[list[Resource]]:
                 mimeType="application/json",
             )
         )
-    logger.info(f"get_objects: {resources=}")
+    logger.info(f"{resources=}")
     return {"status": "ok", "payload": resources}
 
 
@@ -116,7 +115,7 @@ def get_objects() -> Result[list[Resource]]:
 )
 def get_object(name: str) -> Result[list[ReadResourceContents]]:
     """Get detailed information about the specified object."""
-    logger.info(f"get_object: {name=}")
+    logger.info(f"{name=}")
     object = bpy.data.objects[name]
     properties = {
         # Transform
@@ -211,7 +210,7 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
         "properties": properties,
         "modifiers": modifiers,
     }
-    logger.info(f"get_object: {info=}")
+    logger.info(f"{info=}")
     return {
         "status": "ok",
         "payload": [
@@ -239,10 +238,10 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
 @mainthreadify()
 def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
     """Import a 3D file and return the imported objects."""
-    logger.info(f"import_file: {file_path=}")
+    logger.info(f"{file_path=}")
     try:
         if not os.path.exists(file_path):
-            logger.error(f"import_file: {file_path=} not found")
+            logger.error(f"{file_path=} not found")
             return {"status": "error", "payload": f"{file_path=} not found"}
 
         file_ext = os.path.splitext(file_path)[1].lower()
@@ -254,7 +253,7 @@ def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
         elif file_ext == ".fbx":
             bpy.ops.import_scene.fbx(filepath=file_path)
         else:
-            logger.error(f"import_file: Unsupported file format: {file_ext}")
+            logger.error(f"Unsupported file format: {file_ext}")
             return {
                 "status": "error",
                 "payload": f"Unsupported file format: {file_ext}",
@@ -265,11 +264,11 @@ def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
         for obj in imported_objects:
             payload.extend(get_object(obj.name))
 
-        logger.info(f"import_file: {payload=}")
+        logger.info(f"{payload=}")
         return {"status": "ok", "payload": payload}
 
     except Exception as e:
-        logger.error(f"import_file: {e}")
+        logger.error(f"{e}")
         return {"status": "error", "payload": str(e)}
 
 
