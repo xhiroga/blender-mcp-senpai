@@ -103,7 +103,7 @@ async def chat_function(
     state: State,
     request: gr.Request,
 ):
-    """As described in `mainthreadify`, the results of `bpy` update operations are obtained by waiting in an asynchronous loop.
+    """As described in `mainthreadify()`, the results of `bpy` update operations are obtained by waiting in an asynchronous loop.
     In Gradio, when a callback is a synchronous function, Starlette internally offloads the function to a worker thread.
     `anyio.to_thread.run_sync(fn, *args, **kwargs)  # Code is for illustration`
     Therefore, callbacks that indirectly operate on `bpy` should be written as asynchronous functions.
@@ -132,6 +132,8 @@ async def chat_function(
         history=history,
         lang=lang,
     )
+    HistoryRepository.create(conversation_id, "assistant", assistant_message)
+
     logger.info(f"chat_function: {assistant_message=}")
     return assistant_message
 

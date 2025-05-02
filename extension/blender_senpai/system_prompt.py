@@ -50,6 +50,7 @@ SYSTEM_PROMPT = """
 
 - https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/add-mesh.gif
 - https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/add-mesh-adjacent-to-another.gif
+- https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/bevel-edges.gif
 - https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/delete-mesh.gif
 - https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/extrude-manifold.gif
 - https://xhiroga.github.io/blender-mcp-senpai/assets/screenshots/move-mesh.gif
