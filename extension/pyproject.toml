@@ -1,10 +1,12 @@
 [project]
 name = "extension"
-version = "0.0.3"
+version = "0.1.1"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi[standard]>=0.115.12",
+    "gradio>=5.27.1",
+    "litellm>=1.67.5",
     "pydantic>=2.11.3",
     "websockets>=15.0.1",
     "zeroconf>=0.146.5",
@@ -15,5 +17,6 @@ dev = [
     "bpy>=4.4.0",
     "fake-bpy-module>=20250423",
     "numpy<2",
+    "pip>=25.1",    # Use pip that matches the version of the virtual environment, not the system pip. Avoid https://github.com/pypa/pip/issues/11664.
     "tomlkit>=0.13.2",
 ]

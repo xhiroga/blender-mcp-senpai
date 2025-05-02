@@ -1,7 +1,20 @@
-Important events to log:
+# Rules
 
-- Initialization steps
-- Resource access
-- Tool execution
-- Error conditions
-- Performance metrics
+## Business Rules
+
+- Output logs in the following cases
+  - Function arguments and return values
+- Use logger for logging that is committed. However, use print for debugging logging.
+
+## Formatting Rules
+
+- Use `from logging import getLogger` instead of `import logging`
+  - To avoid using `logging.info(...)`
+- Define `logger = getLogger(__name__)` at the beginning of each file.
+- When checking values in logs, it is common to use a combination of the f-string and the equal operator.
+  - Example: `print(f"{history=}")`
+- Comments that are obvious from the code are unnecessary. Write “Why Not” in cases where the original design was incorrect.
+
+## Meta Rules
+
+- Even if the instructions are in Japanese, write comments in the code in English.

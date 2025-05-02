@@ -1,9 +1,13 @@
+import asyncio
 import socket
 
+import gradio as gr
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 from .app import app
 from .mdns import register_service, unregister_service
+from .webui import interface
 
 
 def get_port(default_port=None):
@@ -32,6 +36,13 @@ class Server:
         self.service_info = None
 
     def run(self, default_host="127.0.0.1", default_port=13180):
+        # In Python, there is no default event loop except for main thread.
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
         self.port = get_port(default_port)
 
         self.name = f"blender-{self.port}"
@@ -44,7 +55,20 @@ class Server:
             [default_host],
         )
 
-        config = uvicorn.Config(app, host=default_host, port=self.port, loop="asyncio")
+        # CORSミドルウェアを追加
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
+        gradio_app = gr.mount_gradio_app(app, interface, path="/")
+
+        config = uvicorn.Config(
+            gradio_app, host=default_host, port=self.port, loop="asyncio"
+        )
         self.server = uvicorn.Server(config)
 
         # This will block until the server is stopped
@@ -55,6 +79,8 @@ class Server:
             unregister_service(self.zeroconf, self.service_info)
 
         if self.server:
+            # If do not set force_exit, Uvicorn will not exit until the connection is closed when the browser opens the Gradio page.
+            self.server.force_exit = True
             self.server.should_exit = True
 
 

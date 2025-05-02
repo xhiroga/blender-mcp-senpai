@@ -1,4 +1,4 @@
-# Blender MCP Senpai - Blender Extension
+# Blender Senpai - Blender Extension
 
 ## Build
 
@@ -16,7 +16,7 @@ uv run --env-file .env build.py
 avahi-browse -a | grep blender
 
 # OR directly
-uv run -m mcp_senpai.server
+uv run -m blender_senpai.server
 wscat -c ws://localhost:13180/ws
 > {"type": "get_resources"}
 ...
@@ -35,8 +35,10 @@ uv run python -m pytest
 
 ## ToDo
 
-- [ ] Keep log files locally.
-- [ ] Sometimes mDNS can be observed from WSL, sometimes not.
+- [ ] Embed logo
+- [ ] Store chat history and API keys securely
+- [ ] Sometimes mDNS can be observed from WSL, sometimes not
+- [ ] Refactor: remove unused texts from i18n
 
 ## References
 

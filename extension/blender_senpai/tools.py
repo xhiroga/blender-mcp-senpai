@@ -1,14 +1,31 @@
+import inspect
 import io
 import json
 import os
+import sys
 from contextlib import redirect_stdout
-from typing import Literal, TypedDict, TypeVar
+from functools import wraps
+from typing import Any, Callable, Literal, ParamSpec, TypedDict, TypeVar
 
 import bpy
 
 from .utils import mainthreadify
 
 T = TypeVar("T")
+P = ParamSpec("P")
+
+
+def tool(*, parameters: dict[str, Any]):
+    def decorator(function: Callable[P, T]) -> Callable[P, T]:
+        @wraps(function)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            return function(*args, **kwargs)
+
+        wrapper.__is_tool__ = True
+        wrapper.__parameters__ = parameters
+        return wrapper
+
+    return decorator
 
 
 class Result(TypedDict):
@@ -27,8 +44,22 @@ class ReadResourceContents(TypedDict):
     mime_type: str
 
 
+@tool(
+    parameters={
+        "type": "object",
+        "properties": {
+            "code": {
+                "type": "string",
+                "description": "Execute the given Python code.",
+                "example": "bpy.ops.mesh.primitive_cube_add()",
+            }
+        },
+        "required": ["code"],
+    },
+)
 @mainthreadify()
 def execute_code(code: str) -> Result:
+    """Execute the given Python code in Blender and return the standard output."""
     try:
         capture_buffer = io.StringIO()
         with redirect_stdout(capture_buffer):
@@ -41,7 +72,15 @@ def execute_code(code: str) -> Result:
         return {"status": "error", "payload": str(e)}
 
 
+@tool(
+    parameters={
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+)
 def get_objects() -> Result[list[Resource]]:
+    """Get a list of objects in the current Blender scene."""
     return {
         "status": "ok",
         "payload": [
@@ -55,10 +94,21 @@ def get_objects() -> Result[list[Resource]]:
     }
 
 
+@tool(
+    parameters={
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Object name (key in bpy.data.objects)",
+                "example": "Cube",
+            }
+        },
+        "required": ["name"],
+    },
+)
 def get_object(name: str) -> Result[list[ReadResourceContents]]:
-    """
-    Return data that can be displayed in the Properties editor.
-    """
+    """Get detailed information about the specified object."""
     object = bpy.data.objects[name]
     properties = {
         # Transform
@@ -164,15 +214,28 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
     }
 
 
+@tool(
+    parameters={
+        "type": "object",
+        "properties": {
+            "file_path": {
+                "type": "string",
+                "description": "Absolute path to the file to import",
+                "example": "/path/to/model.glb",
+            }
+        },
+        "required": ["file_path"],
+    },
+)
 @mainthreadify()
 def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
+    """Import a 3D file and return the imported objects."""
     try:
         if not os.path.exists(file_path):
             return {"status": "error", "payload": f"{file_path=} not found"}
 
         file_ext = os.path.splitext(file_path)[1].lower()
 
-        # ファイル形式に応じたインポート処理
         if file_ext in [".glb", ".gltf"]:
             bpy.ops.import_scene.gltf(filepath=file_path)
         elif file_ext == ".obj":
@@ -194,3 +257,39 @@ def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
 
     except Exception as e:
         return {"status": "error", "payload": str(e)}
+
+
+class Tool(TypedDict):
+    type: Literal["function"]
+    function: TypedDict(
+        "Function", {"name": str, "description": str, "parameters": dict[str, Any]}
+    )
+
+
+def _get_tools() -> list[Tool]:
+    tools: list[Tool] = []
+    for name, func in inspect.getmembers(sys.modules[__name__]):
+        if hasattr(func, "__is_tool__"):
+            tools.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": name,
+                        "description": inspect.getdoc(func) or "",
+                        "parameters": func.__parameters__,
+                    },
+                }
+            )
+    return tools
+
+
+tools = _get_tools()
+tool_functions: dict[str, Callable[P, T]] = {
+    name: func
+    for name, func in inspect.getmembers(sys.modules[__name__])
+    if hasattr(func, "__is_tool__")
+}
+
+if __name__ == "__main__":
+    print(f"{tools=}")
+    print(f"{tool_functions=}")
