@@ -269,15 +269,17 @@ class Translator:
 
 CLASS_CHECKBOX_LARGE = "checkbox-large"
 ROW_HEIGHT = 40
-custom_css = f"""
+css = f"""
 .{CLASS_CHECKBOX_LARGE} input[type='checkbox'] {{
     width: {ROW_HEIGHT}px;
     height: {ROW_HEIGHT}px;
     border: 2px solid var(--neutral-300, #d1d5db);
 }}
+footer {{visibility: hidden}}
 """
+# Hide footer: https://github.com/gradio-app/gradio/issues/6696
 
-with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
+with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
     state = gr.State(get_initial_state())
 
     tr = Translator()
@@ -304,11 +306,12 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
                 outputs=[state],
             )
 
-            gr.ChatInterface(
+            chat_interface = gr.ChatInterface(
                 fn=chat_function_alias,
                 type="messages",
                 additional_inputs=[state],
             )
+            chat_interface.chatbot.min_height = "60vh"
 
         with gr.Tab(t("tab_api")) as tab:
             tr.reg(tab, {"label": "tab_api"})
