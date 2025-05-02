@@ -9,6 +9,7 @@ from typing import Any, Callable, Literal, ParamSpec, TypedDict, TypeVar
 
 import bpy
 
+from .system_prompt import SYSTEM_PROMPT
 from .utils import mainthreadify
 
 T = TypeVar("T")
@@ -257,6 +258,10 @@ def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
 
     except Exception as e:
         return {"status": "error", "payload": str(e)}
+
+
+def get_prompt() -> Result[str]:
+    return {"status": "ok", "payload": SYSTEM_PROMPT}
 
 
 class Tool(TypedDict):

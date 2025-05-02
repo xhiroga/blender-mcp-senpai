@@ -12,7 +12,6 @@ from mcp.types import LoggingLevel, Prompt, PromptMessage, Resource, TextContent
 from pydantic import AnyUrl
 
 from .blender_client import BlenderClient
-from .system_prompt import SYSTEM_PROMPT
 
 MCP_SERVER_NAME = "blender-mcp-senpai"
 
@@ -155,12 +154,13 @@ async def main(development: bool):
         ]
 
     @server.get_prompt()
-    async def get_prompt(name: str) -> GetPromptResult:
+    async def get_prompt(_name: str) -> GetPromptResult:
+        prompt = await blender_client.get_prompt()
         return GetPromptResult(
             messages=[
                 PromptMessage(
                     role="user",
-                    content=TextContent(type="text", text=SYSTEM_PROMPT),
+                    content=TextContent(type="text", text=prompt),
                 )
             ]
         )

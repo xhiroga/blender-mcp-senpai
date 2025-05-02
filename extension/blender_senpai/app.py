@@ -9,7 +9,9 @@ app = FastAPI()
 
 
 class BlenderCommand(BaseModel):
-    type: Literal["get_resources", "get_resource", "execute_code", "import_file"]
+    type: Literal[
+        "get_resources", "get_resource", "execute_code", "import_file", "get_prompt"
+    ]
     code: str | None = None
     resource_type: str | None = None
     name: str | None = None
@@ -45,6 +47,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         if command.path:
                             result = await import_file(command.path)
                             await websocket.send_json(result)
+
+                    case "get_prompt":
+                        result = get_prompt()
+                        await websocket.send_json(result)
 
                     case _:
                         raise ValueError(f"Undefined command: {command}")

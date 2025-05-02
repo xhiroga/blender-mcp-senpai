@@ -39,6 +39,7 @@ uv run python -m pytest
 - [ ] Store chat history and API keys securely
 - [ ] Sometimes mDNS can be observed from WSL, sometimes not
 - [ ] Refactor: remove unused texts from i18n
+- [ ] Reduce binary size. Use `pip install gradio --no-deps` and Carefully select dependencies
 
 ## Release
 

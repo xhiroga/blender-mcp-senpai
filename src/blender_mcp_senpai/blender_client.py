@@ -75,6 +75,10 @@ class BlenderClient:
         response = await self._send_message({"type": "import_file", "path": path})
         return response.get("payload", {})
 
+    async def get_prompt(self) -> str:
+        response = await self._send_message({"type": "get_prompt"})
+        return response.get("payload", "")
+
 
 async def debug():
     client = BlenderClient()

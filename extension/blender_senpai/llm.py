@@ -7,6 +7,7 @@ import litellm
 from litellm import ChatCompletionMessageToolCall
 
 from .i18n import Lang
+from .system_prompt import SYSTEM_PROMPT
 from .tools import tool_functions, tools
 
 logger = getLogger(__name__)
@@ -23,11 +24,6 @@ class OpenAIChatCompletionMessages(TypedDict):
     role: str
     content: str
     # TODO: Tools, etc... from https://platform.openai.com/docs/api-reference/chat
-
-
-SYSTEM_PROMPT = """
-You are a helpful assistant.
-"""
 
 
 def _build_litellm_messages_from_gradio_history(
