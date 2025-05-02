@@ -1,3 +1,4 @@
+import json
 import uuid
 from dataclasses import dataclass, replace
 from logging import getLogger
@@ -77,6 +78,9 @@ ComponentValue: TypeAlias = Any
 HandlerOutputs: TypeAlias = tuple[Union[ComponentValue, gr.Component]]
 Handler: TypeAlias = Callable[[*tuple[ComponentValue], gr.Request], HandlerOutputs]
 
+# region Event Handlers
+#
+
 
 def chat_function(
     message: str,
@@ -151,8 +155,11 @@ def register_api_key_with(provider: Provider) -> Handler:
             result = "OK"
             is_registered = True
             model_selector = gr.Dropdown(
-                choices=[model["model"] for model in enabled_models],
-                value=current_model["model"],
+                choices=[
+                    (f"{model['model']} ({model['provider']})", json.dumps(model))
+                    for model in enabled_models
+                ],
+                value=json.dumps(current_model),
             )
 
             # AttributeError: 'Dropdown' object has no attribute 'value'
@@ -168,10 +175,17 @@ def register_api_key_with(provider: Provider) -> Handler:
     return register_api_key
 
 
-def update_current_model(state: State, model_name: str, _request: gr.Request) -> State:
+def update_current_model(state: State, model_json: str, _request: gr.Request) -> State:
+    model = json.loads(model_json)
     return replace(
         state,
-        current_model=next(filter(lambda m: m["model"] == model_name, model_configs)),
+        current_model=next(
+            filter(
+                lambda m: m["model"] == model["model"]
+                and m["provider"] == model["provider"],
+                model_configs,
+            )
+        ),
     )
 
 
@@ -227,6 +241,8 @@ class Translator:
         return [component for component, _ in self.originals]
 
 
+# endregion
+
 with gr.Blocks(title=t("app_title"), theme="soft") as interface:
     state = gr.State(get_initial_state())
 
@@ -238,10 +254,12 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
         with gr.TabItem(t("tab_chat")) as tab:
             tr.reg(tab, {"label": "tab_chat"})
 
-            # TODO: 内部的にもJSONで持ちたい
             model_selector = gr.Dropdown(
-                choices=[model["model"] for model in state.value.enabled_models],
-                value=state.value.current_model["model"],
+                choices=[
+                    (f"{model['model']} ({model['provider']})", json.dumps(model))
+                    for model in state.value.enabled_models
+                ],
+                value=json.dumps(state.value.current_model),
                 label=t("label_model"),
                 container=False,
             )
