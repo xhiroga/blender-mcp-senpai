@@ -29,7 +29,7 @@ model_configs: list[ModelConfig] = [
     {"provider": "openai", "model": "o1-mini", "default": False},
     {"provider": "openai", "model": "o3", "default": False},
     {"provider": "openai", "model": "o3-mini", "default": False},
-    {"provider": "openai", "model": "o4", "default": False},
+    {"provider": "openai", "model": "o4-mini", "default": False},
     # https://docs.anthropic.com/en/docs/about-claude/models/all-models
     {"provider": "anthropic", "model": "claude-3-7-sonnet-20250219", "default": False},
     {"provider": "anthropic", "model": "claude-3-5-haiku-20241022", "default": True},
