@@ -46,7 +46,7 @@ uv run python -m pytest
 ```sh
 # Update version in `pyproject.toml`
 uv run --env-file .env build.py
-git add $(git rev-parse --show-toplevel)/docs/extensions/index.json
+git add $(git rev-parse --show-toplevel)/docs/extensions/index.json $(git rev-parse --show-toplevel)/extension/pyproject.toml $(git rev-parse --show-toplevel)/uv.lock
 VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
 git commit -m "feat: v$VERSION"
 git tag v$VERSION
