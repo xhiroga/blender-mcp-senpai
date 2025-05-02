@@ -20,22 +20,25 @@ logger = getLogger(__name__)
 Provider = Literal["openai", "gemini", "anthropic", "tutorial"]
 ModelConfig = TypedDict("model", {"provider": Provider, "model": str, "default": bool})
 model_configs: list[ModelConfig] = [
+    # https://docs.cursor.com/settings/models
     # https://docs.litellm.ai/docs/providers/openai
-    {"provider": "openai", "model": "gpt-3.5-turbo", "default": True},
-    {"provider": "openai", "model": "gpt-3.5-turbo-0613", "default": False},
-    {"provider": "openai", "model": "gpt-3.5-turbo-1106", "default": False},
-    {"provider": "openai", "model": "gpt-3.5-turbo-16k", "default": False},
-    {"provider": "openai", "model": "gpt-3.5-turbo-16k-0613", "default": False},
-    {"provider": "openai", "model": "gpt-4", "default": False},
-    {"provider": "openai", "model": "gpt-4-0314", "default": False},
-    {"provider": "openai", "model": "gpt-4-0613", "default": False},
-    # https://docs.litellm.ai/docs/providers/deepseek
+    {"provider": "openai", "model": "gpt-4o", "default": False},
+    {"provider": "openai", "model": "gpt-4o-mini", "default": True},
+    {"provider": "openai", "model": "gpt-4.1", "default": False},
+    {"provider": "openai", "model": "o1", "default": False},
+    {"provider": "openai", "model": "o1-mini", "default": False},
+    {"provider": "openai", "model": "o3", "default": False},
+    {"provider": "openai", "model": "o3-mini", "default": False},
+    {"provider": "openai", "model": "o4", "default": False},
     # https://docs.anthropic.com/en/docs/about-claude/models/all-models
-    {"provider": "anthropic", "model": "claude-3-5-haiku-20241022", "default": True},
     {"provider": "anthropic", "model": "claude-3-7-sonnet-20250219", "default": False},
+    {"provider": "anthropic", "model": "claude-3-5-haiku-20241022", "default": True},
     # https://docs.litellm.ai/docs/providers/gemini
     # https://ai.google.dev/gemini-api/docs/models
     {"provider": "gemini", "model": "gemini-2.5-flash-preview-04-17", "default": True},
+    {"provider": "gemini", "model": "gemini-2.5-pro-preview-03-25", "default": False},
+    {"provider": "gemini", "model": "gemini-2.0-flash", "default": False},
+    {"provider": "gemini", "model": "gemini-2.0-flash-lite", "default": False},
     # Debug mock provider – echo back without external request
     {"provider": "tutorial", "model": "Tutorial", "default": True},
 ]
@@ -119,8 +122,10 @@ async def chat_function(
     if not api_key:
         return t("msg_api_key_required", lang)
 
+    model = f"{provider}/{state.current_model['model']}"
+    logger.info(f"chat_function#litellm.completion: {model=}")
     assistant_message = await completion(
-        model=state.current_model["model"],
+        model=model,
         api_key=api_key,
         message=message,
         history=history,
@@ -135,10 +140,10 @@ chat_function_alias: Handler = chat_function
 
 def register_api_key_with(provider: Provider) -> Handler:
     def register_api_key(
-        state: State, api_key: str, selected_model: str, _request: gr.Request
+        state: State, api_key: str, current_model: str, _request: gr.Request
     ) -> tuple[State, str, bool, gr.Dropdown]:
         logger.info(
-            f"register_api_key: {provider=}, api_key={api_key[:5]}..., {selected_model=}"
+            f"register_api_key: {provider=}, api_key={api_key[:5]}..., {current_model=}"
         )
         try:
             default_model = next(
@@ -146,8 +151,10 @@ def register_api_key_with(provider: Provider) -> Handler:
                     lambda m: m["provider"] == provider and m["default"], model_configs
                 )
             )
+            model = f"{provider}/{default_model['model']}"
+            logger.info(f"register_api_key#litellm.completion: {model=}")
             litellm.completion(
-                model=default_model["model"],
+                model=model,
                 api_key=api_key,
                 messages=[{"role": "user", "content": "test"}],
                 max_tokens=5,
@@ -159,9 +166,7 @@ def register_api_key_with(provider: Provider) -> Handler:
                 model for model in model_configs if model["provider"] in providers
             )
             current_model = (
-                selected_model
-                if selected_model in enabled_models
-                else enabled_models[0]
+                current_model if current_model in enabled_models else enabled_models[0]
             )
 
             new_state = replace(
@@ -315,29 +320,6 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
             )
 
             with gr.Row(equal_height=True):
-                openai_key = gr.Textbox(
-                    value=state.value.api_keys.get("openai", ""),
-                    type="password",
-                    placeholder=t("msg_api_key_required"),
-                    show_label=False,
-                    container=False,
-                    interactive=True,
-                    scale=16,
-                )
-                tr.reg(
-                    openai_key,
-                    {
-                        "placeholder": "msg_api_key_required",
-                    },
-                )
-
-                openai_key_verify_button = gr.Button(
-                    value=t("label_verify"),
-                    variant="primary",
-                    scale=2,
-                )
-                tr.reg(openai_key_verify_button, {"value": "label_verify"})
-
                 openai_key_checkbox = gr.Checkbox(
                     value=False,
                     label="",
@@ -348,6 +330,23 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
                     elem_classes=CLASS_CHECKBOX_LARGE,
                 )
 
+                openai_key = gr.Textbox(
+                    value=state.value.api_keys.get("openai", ""),
+                    type="password",
+                    placeholder="sk-.........",
+                    show_label=False,
+                    container=False,
+                    interactive=True,
+                    scale=16,
+                )
+
+                openai_key_verify_button = gr.Button(
+                    value=t("label_verify"),
+                    variant="primary",
+                    scale=2,
+                )
+                tr.reg(openai_key_verify_button, {"value": "label_verify"})
+
             anthropic_label = gr.Label(
                 value="Anthropic API Key",
                 show_label=False,
@@ -355,24 +354,6 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
             )
 
             with gr.Row(equal_height=True):
-                anthropic_key = gr.Textbox(
-                    value=state.value.api_keys.get("anthropic", ""),
-                    type="password",
-                    placeholder=t("msg_api_key_required"),
-                    show_label=False,
-                    container=False,
-                    interactive=True,
-                    scale=16,
-                )
-                tr.reg(anthropic_key, {"placeholder": "msg_api_key_required"})
-
-                anthropic_key_verify_button = gr.Button(
-                    value=t("label_verify"),
-                    variant="primary",
-                    scale=2,
-                )
-                tr.reg(anthropic_key_verify_button, {"value": "label_verify"})
-
                 anthropic_key_checkbox = gr.Checkbox(
                     value=False,
                     label="",
@@ -383,6 +364,23 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
                     elem_classes=CLASS_CHECKBOX_LARGE,
                 )
 
+                anthropic_key = gr.Textbox(
+                    value=state.value.api_keys.get("anthropic", ""),
+                    type="password",
+                    placeholder="sk-ant-api03-.........",
+                    show_label=False,
+                    container=False,
+                    interactive=True,
+                    scale=16,
+                )
+
+                anthropic_key_verify_button = gr.Button(
+                    value=t("label_verify"),
+                    variant="primary",
+                    scale=2,
+                )
+                tr.reg(anthropic_key_verify_button, {"value": "label_verify"})
+
             gemini_label = gr.Label(
                 value="Gemini API Key",
                 show_label=False,
@@ -390,24 +388,6 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
             )
 
             with gr.Row(equal_height=True):
-                gemini_key = gr.Textbox(
-                    value=state.value.api_keys.get("gemini", ""),
-                    type="password",
-                    placeholder=t("msg_api_key_required"),
-                    show_label=False,
-                    container=False,
-                    interactive=True,
-                    scale=16,
-                )
-                tr.reg(gemini_key, {"placeholder": "msg_api_key_required"})
-
-                gemini_key_verify_button = gr.Button(
-                    value=t("label_verify"),
-                    variant="primary",
-                    scale=2,
-                )
-                tr.reg(gemini_key_verify_button, {"value": "label_verify"})
-
                 gemini_key_checkbox = gr.Checkbox(
                     value=False,
                     label="",
@@ -417,6 +397,23 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
                     interactive=False,
                     elem_classes=CLASS_CHECKBOX_LARGE,
                 )
+
+                gemini_key = gr.Textbox(
+                    value=state.value.api_keys.get("gemini", ""),
+                    type="password",
+                    placeholder="AIzaSy.........",
+                    show_label=False,
+                    container=False,
+                    interactive=True,
+                    scale=16,
+                )
+
+                gemini_key_verify_button = gr.Button(
+                    value=t("label_verify"),
+                    variant="primary",
+                    scale=2,
+                )
+                tr.reg(gemini_key_verify_button, {"value": "label_verify"})
 
             result = gr.Textbox(
                 label=t("label_status"),
