@@ -266,7 +266,7 @@ class Tool(TypedDict):
     )
 
 
-def get_tools() -> list[Tool]:
+def _get_tools() -> list[Tool]:
     tools: list[Tool] = []
     for name, func in inspect.getmembers(sys.modules[__name__]):
         if hasattr(func, "__is_tool__"):
@@ -283,5 +283,13 @@ def get_tools() -> list[Tool]:
     return tools
 
 
+tools = _get_tools()
+tool_functions: dict[str, Callable[P, T]] = {
+    name: func
+    for name, func in inspect.getmembers(sys.modules[__name__])
+    if hasattr(func, "__is_tool__")
+}
+
 if __name__ == "__main__":
-    print(f"{get_tools()=}")
+    print(f"{tools=}")
+    print(f"{tool_functions=}")

@@ -94,12 +94,18 @@ HandlerOutputs: TypeAlias = tuple[Union[ComponentValue, gr.Component]]
 Handler: TypeAlias = Callable[[*tuple[ComponentValue], gr.Request], HandlerOutputs]
 
 
-def chat_function(
+async def chat_function(
     message: str,
     history: list[tuple[str, str]],
     state: State,
     request: gr.Request,
 ):
+    """As described in `mainthreadify`, the results of `bpy` update operations are obtained by waiting in an asynchronous loop.
+    In Gradio, when a callback is a synchronous function, Starlette internally offloads the function to a worker thread.
+    `anyio.to_thread.run_sync(fn, *args, **kwargs)  # Code is for illustration`
+    Therefore, callbacks that indirectly operate on `bpy` should be written as asynchronous functions.
+    """
+
     conversation_id = state.current_conversation_id
     HistoryRepository.create(conversation_id, "user", message)
     lang = state.current_lang
@@ -113,7 +119,7 @@ def chat_function(
     if not api_key:
         return t("msg_api_key_required", lang)
 
-    assistant_message = completion(
+    assistant_message = await completion(
         model=state.current_model["model"],
         api_key=api_key,
         message=message,
@@ -123,7 +129,8 @@ def chat_function(
     return assistant_message
 
 
-chat_function: Handler = chat_function
+# Alias with proper Handler type so static analysis passes
+chat_function_alias: Handler = chat_function
 
 
 def register_api_key_with(provider: Provider) -> Handler:
@@ -260,7 +267,6 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
 
     tr = Translator()
     tr.reg(gr.Markdown(**{"value": "app_title"}), {"value": "app_title"})
-    tr.reg(gr.Markdown(t("app_desc")), {"value": "app_desc"})
 
     with gr.Tabs():
         with gr.TabItem(t("tab_chat")) as tab:
@@ -284,7 +290,7 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
             )
 
             gr.ChatInterface(
-                fn=chat_function,
+                fn=chat_function_alias,
                 type="messages",
                 additional_inputs=[state],
             )
