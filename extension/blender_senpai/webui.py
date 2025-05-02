@@ -262,7 +262,17 @@ class Translator:
 
 # endregion
 
-with gr.Blocks(title=t("app_title"), theme="soft") as interface:
+CLASS_CHECKBOX_LARGE = "checkbox-large"
+ROW_HEIGHT = 40
+custom_css = f"""
+.{CLASS_CHECKBOX_LARGE} input[type='checkbox'] {{
+    width: {ROW_HEIGHT}px;
+    height: {ROW_HEIGHT}px;
+    border: 2px solid var(--neutral-300, #d1d5db);
+}}
+"""
+
+with gr.Blocks(title=t("app_title"), theme="soft", css=custom_css) as interface:
     state = gr.State(get_initial_state())
 
     tr = Translator()
@@ -297,41 +307,116 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
 
         with gr.Tab(t("tab_api")) as tab:
             tr.reg(tab, {"label": "tab_api"})
-            with gr.Row():
+
+            openai_label = gr.Label(
+                value="OpenAI API Key",
+                show_label=False,
+                container=False,
+            )
+
+            with gr.Row(equal_height=True):
                 openai_key = gr.Textbox(
                     value=state.value.api_keys.get("openai", ""),
                     type="password",
                     placeholder=t("msg_api_key_required"),
-                    label="OpenAI API Key",
+                    show_label=False,
+                    container=False,
                     interactive=True,
-                    submit_btn=t("label_verify"),
+                    scale=16,
                 )
+                tr.reg(
+                    openai_key,
+                    {
+                        "placeholder": "msg_api_key_required",
+                    },
+                )
+
+                openai_key_verify_button = gr.Button(
+                    value=t("label_verify"),
+                    variant="primary",
+                    scale=2,
+                )
+                tr.reg(openai_key_verify_button, {"value": "label_verify"})
+
                 openai_key_checkbox = gr.Checkbox(
                     value=False,
+                    label="",
+                    show_label=False,
+                    container=False,
+                    scale=1,
                     interactive=False,
+                    elem_classes=CLASS_CHECKBOX_LARGE,
                 )
-            tr.reg(
-                openai_key,
-                {
-                    "placeholder": "msg_api_key_required",
-                    "submit_btn": "label_verify",
-                },
+
+            anthropic_label = gr.Label(
+                value="Anthropic API Key",
+                show_label=False,
+                container=False,
             )
 
-            anthropic_key = gr.Textbox(
-                type="password",
-                placeholder=t("msg_api_key_required"),
-                label=t("label_api_key"),
-                value=state.value.api_keys.get("anthropic", ""),
-                interactive=True,
+            with gr.Row(equal_height=True):
+                anthropic_key = gr.Textbox(
+                    value=state.value.api_keys.get("anthropic", ""),
+                    type="password",
+                    placeholder=t("msg_api_key_required"),
+                    show_label=False,
+                    container=False,
+                    interactive=True,
+                    scale=16,
+                )
+                tr.reg(anthropic_key, {"placeholder": "msg_api_key_required"})
+
+                anthropic_key_verify_button = gr.Button(
+                    value=t("label_verify"),
+                    variant="primary",
+                    scale=2,
+                )
+                tr.reg(anthropic_key_verify_button, {"value": "label_verify"})
+
+                anthropic_key_checkbox = gr.Checkbox(
+                    value=False,
+                    label="",
+                    show_label=False,
+                    container=False,
+                    scale=1,
+                    interactive=False,
+                    elem_classes=CLASS_CHECKBOX_LARGE,
+                )
+
+            gemini_label = gr.Label(
+                value="Gemini API Key",
+                show_label=False,
+                container=False,
             )
-            tr.reg(anthropic_key, {"placeholder": "msg_api_key_required"})
-            anthropic_status = gr.Textbox(
-                label=t("label_status"),
-                interactive=False,
-            )
-            tr.reg(anthropic_status, {"label": "label_status"})
-            anthropic_verify = gr.Button(t("label_verify"))
+
+            with gr.Row(equal_height=True):
+                gemini_key = gr.Textbox(
+                    value=state.value.api_keys.get("gemini", ""),
+                    type="password",
+                    placeholder=t("msg_api_key_required"),
+                    show_label=False,
+                    container=False,
+                    interactive=True,
+                    scale=16,
+                )
+                tr.reg(gemini_key, {"placeholder": "msg_api_key_required"})
+
+                gemini_key_verify_button = gr.Button(
+                    value=t("label_verify"),
+                    variant="primary",
+                    scale=2,
+                )
+                tr.reg(gemini_key_verify_button, {"value": "label_verify"})
+
+                gemini_key_checkbox = gr.Checkbox(
+                    value=False,
+                    label="",
+                    show_label=False,
+                    container=False,
+                    scale=1,
+                    interactive=False,
+                    elem_classes=CLASS_CHECKBOX_LARGE,
+                )
 
             result = gr.Textbox(
                 label=t("label_status"),
@@ -339,10 +424,25 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
             )
             tr.reg(result, {"label": "label_status"})
 
-            openai_key.submit(
+            gr.on(
+                triggers=[openai_key.submit, openai_key_verify_button.click],
                 fn=register_api_key_with("openai"),
                 inputs=[state, openai_key, model_selector],
                 outputs=[state, result, openai_key_checkbox, model_selector],
+            )
+
+            gr.on(
+                triggers=[anthropic_key.submit, anthropic_key_verify_button.click],
+                fn=register_api_key_with("anthropic"),
+                inputs=[state, anthropic_key, model_selector],
+                outputs=[state, result, anthropic_key_checkbox, model_selector],
+            )
+
+            gr.on(
+                triggers=[gemini_key.submit, gemini_key_verify_button.click],
+                fn=register_api_key_with("gemini"),
+                inputs=[state, gemini_key, model_selector],
+                outputs=[state, result, gemini_key_checkbox, model_selector],
             )
 
     interface.load(

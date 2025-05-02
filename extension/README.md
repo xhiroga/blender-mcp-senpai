@@ -35,9 +35,10 @@ uv run python -m pytest
 
 ## ToDo
 
-- [ ] Embed logo.
-- [ ] Store chat history and API keys securely.
-- [ ] Sometimes mDNS can be observed from WSL, sometimes not.
+- [ ] Embed logo
+- [ ] Store chat history and API keys securely
+- [ ] Sometimes mDNS can be observed from WSL, sometimes not
+- [ ] Refactor: remove unused texts from i18n
 
 ## References
 
