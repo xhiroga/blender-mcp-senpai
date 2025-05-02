@@ -1,5 +1,5 @@
-import logging
 import uuid
+from logging import getLogger
 from typing import Any, Callable, Literal, TypeAlias, TypedDict, Union
 
 import gradio as gr
@@ -7,12 +7,15 @@ import litellm
 
 from .i18n import Lang, t
 from .llm import completion
+from .log_config import configure
 from .repositories.api_key_repository import ApiKeyRepository
 from .repositories.history_repository import HistoryRepository
 
+logger = getLogger(__name__)
+
 # To Update models, use search-available models like o4-mini.
 # INSTRUCTION: When updating the model, refer to the URL.
-Provider = Literal["openai", "gemini", "anthropic", "deepseek"]
+Provider = Literal["openai", "gemini", "anthropic", "tutorial"]
 ModelConfig = TypedDict("model", {"provider": Provider, "model": str, "default": bool})
 model_configs: list[ModelConfig] = [
     # https://docs.litellm.ai/docs/providers/openai
@@ -31,6 +34,8 @@ model_configs: list[ModelConfig] = [
     # https://docs.litellm.ai/docs/providers/gemini
     # https://ai.google.dev/gemini-api/docs/models
     {"provider": "gemini", "model": "gemini-2.5-flash-preview-04-17", "default": True},
+    # Debug mock provider – echo back without external request
+    {"provider": "tutorial", "model": "Tutorial", "default": True},
 ]
 
 
@@ -46,24 +51,27 @@ def get_initial_state() -> State:
     api_keys = ApiKeyRepository.list()
     providers = list(api_keys.keys())
     enabled_models = [
-        model for model in model_configs if model["provider"] in providers
+        model
+        for model in model_configs
+        if model["provider"] == "tutorial" or model["provider"] in providers
     ]
     return {
         "api_keys": api_keys,
         "enabled_models": enabled_models,
-        "current_model": enabled_models[0] if enabled_models else {},
+        "current_model": enabled_models[0],
         "current_lang": "en",
         "current_conversation_id": str(uuid.uuid4()),
     }
 
 
+def masked(state: State) -> State:
+    state["api_keys"] = {k: f"{v[:5]}..." for k, v in state["api_keys"].items() if v}
+    return state
+
+
 ComponentValue: TypeAlias = Any
 HandlerOutputs: TypeAlias = tuple[Union[ComponentValue, gr.Component]]
 Handler: TypeAlias = Callable[[*tuple[ComponentValue], gr.Request], HandlerOutputs]
-
-
-# 初期化: ロギング設定
-logging.basicConfig(level=logging.INFO)
 
 
 def chat_function(
@@ -77,7 +85,11 @@ def chat_function(
     lang = state["current_lang"]
 
     provider = state["current_model"]["provider"]
-    api_key = state["api_keys"][provider]
+
+    if provider == "tutorial":
+        return t("tutorial", lang)
+
+    api_key = state["api_keys"].get(provider)
     if not api_key:
         return t("msg_api_key_required", lang)
 
@@ -98,6 +110,9 @@ def register_api_key_with(provider: Provider) -> Handler:
     def register_api_key(
         state: State, api_key: str, selected_model: str, _request: gr.Request
     ) -> tuple[State, str, bool, gr.Dropdown]:
+        logger.info(
+            f"register_api_key: {provider=}, api_key={api_key[:5]}..., {selected_model=}"
+        )
         try:
             default_model = next(
                 filter(
@@ -134,18 +149,27 @@ def register_api_key_with(provider: Provider) -> Handler:
                 value=current_model,
             )
 
+            # AttributeError: 'Dropdown' object has no attribute 'value'
+            logger.info(
+                f"register_api_key: {masked(new_state)=}, {result=}, {is_registered=}, {model_selector.change=}"
+            )
             return new_state, result, is_registered, model_selector
 
-        except Exception:
-            return gr.skip(), "NG", False, gr.skip()
+        except Exception as e:
+            logger.exception(e)
+            return gr.skip(), f"NG: {e}", False, gr.skip()
 
     return register_api_key
 
 
 def update_current_model(state: State, model_name: str, _request: gr.Request) -> State:
-    state["current_model"] = next(
-        filter(lambda m: m["model"] == model_name, model_configs)
-    )
+    try:
+        state["current_model"] = next(
+            filter(lambda m: m["model"] == model_name, model_configs)
+        )
+    except StopIteration:
+        # モデルが見つからない場合は、現在のモデルを維持
+        logger.warning(f"Model {model_name} not found, keeping current model")
     return state
 
 
@@ -184,11 +208,11 @@ class Translator:
         state["current_lang"] = lang
 
         patches = []
-        for component, mapping in self.components:
+        for component, mapping in self.originals:
             translated = {k: t(v, lang) for k, v in mapping.items()}
             # The Textbox specified in output cannot be edited unless interactive = True is explicitly set.
             # https://www.gradio.app/guides/blocks-and-event-listeners#event-listeners-and-interactivity
-            # Incidentally, using `hasattr(component, “interactive”)` to determine this is inappropriate.
+            # Incidentally, using `hasattr(component, "interactive")` to determine this is inappropriate.
             # There are components that have interactive as a property but do not accept it as an argument.
             # Furthermore, even if a text box is editable on the UI, it will internally hold None if interactive is not specified when instantiated.
             # And if None is specified as an argument, it will become uneditable.
@@ -212,9 +236,10 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
         with gr.TabItem(t("tab_chat")) as tab:
             tr.reg(tab, {"label": "tab_chat"})
 
+            # TODO: 内部的にもJSONで持ちたい
             model_selector = gr.Dropdown(
-                choices=[],
-                value=state["current_model"]["model"],
+                choices=[model["model"] for model in state.value["enabled_models"]],
+                value=state.value["current_model"]["model"],
                 label=t("label_model"),
                 container=False,
             )
@@ -226,11 +251,17 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
                 outputs=[state],
             )
 
+            gr.ChatInterface(
+                fn=chat_function,
+                type="messages",
+                additional_inputs=[state],
+            )
+
         with gr.Tab(t("tab_api")) as tab:
             tr.reg(tab, {"label": "tab_api"})
             with gr.Row():
                 openai_key = gr.Textbox(
-                    value=state["api_keys"]["openai"],
+                    value=state.value["api_keys"].get("openai", ""),
                     type="password",
                     placeholder=t("msg_api_key_required"),
                     label="OpenAI API Key",
@@ -253,7 +284,7 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
                 type="password",
                 placeholder=t("msg_api_key_required"),
                 label=t("label_api_key"),
-                value=state["api_keys"]["anthropic"],
+                value=state.value["api_keys"].get("anthropic", ""),
                 interactive=True,
             )
             tr.reg(anthropic_key, {"placeholder": "msg_api_key_required"})
@@ -279,9 +310,10 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
     interface.load(
         fn=tr.patch,
         inputs=[state],
-        outputs=[state, *tr.originals()],
+        outputs=[state, *tr.components()],
     )
 
 
 if __name__ == "__main__":
+    configure(mode="standalone")
     interface.launch()

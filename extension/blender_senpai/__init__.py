@@ -1,11 +1,15 @@
 import os
 import threading
 import tomllib
+from logging import getLogger
 
 import bpy
 
+from .log_config import configure
 from .server import server
 from .utils import execute_queued_functions
+
+logger = getLogger(__name__)
 
 
 def read_manifest() -> dict:
@@ -25,9 +29,11 @@ def register():
     So, for example, if you put `time.sleep(10)`, from the time you press start Blender until the layout screen appears,
     The screen will be white until the layout screen is displayed.
     """
+    configure(mode="extension")
+
     manifest = read_manifest()
-    print(
-        f"Hello from extension! Blender {bpy.app.version_string} | Extension v{manifest.get('version', 'unknown')} | Git commit: {manifest.get('commit', 'unknown')}"
+    logger.info(
+        f"Hello from extension! Blender :{bpy.app.version_string}, Extension: {manifest.get('version', 'unknown')}, Git commit: {manifest.get('commit', 'unknown')}"
     )
 
     bpy.app.timers.register(execute_queued_functions)
@@ -35,5 +41,5 @@ def register():
 
 
 def unregister():
-    print("Goodbye from extension!")
+    logger.info("Goodbye from extension!")
     server.stop()
