@@ -50,6 +50,9 @@ class State:
     current_lang: Lang
 
 
+# region Helper Functions
+
+
 def get_initial_state() -> State:
     api_keys = ApiKeyRepository.list()
     providers = list(api_keys.keys())
@@ -73,6 +76,8 @@ def masked(state: State) -> State:
         api_keys={k: f"{v[:5]}..." for k, v in state.api_keys.items() if v},
     )
 
+
+# endregion
 
 # region Event Handlers
 # While React declares the UI as a callback to the state, Gradio declares the UI elements themselves.
