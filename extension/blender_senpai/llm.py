@@ -37,8 +37,6 @@ def completion(
     message: str,
     history: list[tuple[str, str]],
     lang: Lang,
-    max_tokens: int,
-    temperature: float,
 ) -> str:
     messages = _build_litellm_messages_from_gradio_history(message, history, lang)
     response = litellm.completion(

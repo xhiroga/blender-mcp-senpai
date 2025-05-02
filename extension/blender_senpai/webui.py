@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import dataclass, replace
 from logging import getLogger
 from typing import Any, Callable, Literal, TypeAlias, TypedDict, Union
 
@@ -39,9 +40,10 @@ model_configs: list[ModelConfig] = [
 ]
 
 
-class State(TypedDict):
+@dataclass(frozen=True)
+class State:
     api_keys: dict[Provider, str]
-    enabled_models: list[ModelConfig]
+    enabled_models: tuple[ModelConfig, ...]
     current_model: ModelConfig
     current_conversation_id: str
     current_lang: Lang
@@ -50,23 +52,25 @@ class State(TypedDict):
 def get_initial_state() -> State:
     api_keys = ApiKeyRepository.list()
     providers = list(api_keys.keys())
-    enabled_models = [
+    enabled_models = tuple(
         model
         for model in model_configs
         if model["provider"] == "tutorial" or model["provider"] in providers
-    ]
-    return {
-        "api_keys": api_keys,
-        "enabled_models": enabled_models,
-        "current_model": enabled_models[0],
-        "current_lang": "en",
-        "current_conversation_id": str(uuid.uuid4()),
-    }
+    )
+    return State(
+        api_keys=api_keys,
+        enabled_models=enabled_models,
+        current_model=enabled_models[0],
+        current_lang="en",
+        current_conversation_id=str(uuid.uuid4()),
+    )
 
 
 def masked(state: State) -> State:
-    state["api_keys"] = {k: f"{v[:5]}..." for k, v in state["api_keys"].items() if v}
-    return state
+    return replace(
+        state,
+        api_keys={k: f"{v[:5]}..." for k, v in state.api_keys.items() if v},
+    )
 
 
 ComponentValue: TypeAlias = Any
@@ -80,21 +84,21 @@ def chat_function(
     state: State,
     request: gr.Request,
 ):
-    conversation_id = state["current_conversation_id"]
+    conversation_id = state.current_conversation_id
     HistoryRepository.create(conversation_id, "user", message)
-    lang = state["current_lang"]
+    lang = state.current_lang
 
-    provider = state["current_model"]["provider"]
+    provider = state.current_model["provider"]
 
     if provider == "tutorial":
         return t("tutorial", lang)
 
-    api_key = state["api_keys"].get(provider)
+    api_key = state.api_keys.get(provider)
     if not api_key:
         return t("msg_api_key_required", lang)
 
     assistant_message = completion(
-        model=state["current_model"]["model"],
+        model=state.current_model["model"],
         api_key=api_key,
         message=message,
         history=history,
@@ -128,25 +132,27 @@ def register_api_key_with(provider: Provider) -> Handler:
             ApiKeyRepository.save(provider, api_key)
             api_keys = ApiKeyRepository.list()
             providers = list(api_keys.keys())
-            enabled_models = [
+            enabled_models = tuple(
                 model for model in model_configs if model["provider"] in providers
-            ]
+            )
             current_model = (
                 selected_model
                 if selected_model in enabled_models
                 else enabled_models[0]
             )
 
-            new_state = {
-                "api_keys": api_keys,
-                "enabled_models": enabled_models,
-                "current_model": current_model,
-            }
+            new_state = replace(
+                state,
+                api_keys=api_keys,
+                enabled_models=enabled_models,
+                current_model=current_model,
+            )
+
             result = "OK"
             is_registered = True
             model_selector = gr.Dropdown(
-                choices=enabled_models,
-                value=current_model,
+                choices=[model["model"] for model in enabled_models],
+                value=current_model["model"],
             )
 
             # AttributeError: 'Dropdown' object has no attribute 'value'
@@ -163,14 +169,10 @@ def register_api_key_with(provider: Provider) -> Handler:
 
 
 def update_current_model(state: State, model_name: str, _request: gr.Request) -> State:
-    try:
-        state["current_model"] = next(
-            filter(lambda m: m["model"] == model_name, model_configs)
-        )
-    except StopIteration:
-        # モデルが見つからない場合は、現在のモデルを維持
-        logger.warning(f"Model {model_name} not found, keeping current model")
-    return state
+    return replace(
+        state,
+        current_model=next(filter(lambda m: m["model"] == model_name, model_configs)),
+    )
 
 
 update_current_model: Handler = update_current_model
@@ -205,7 +207,7 @@ class Translator:
         https://www.gradio.app/guides/blocks-and-event-listeners#updating-component-configurations
         """
         lang = self._get_lang(request)
-        state["current_lang"] = lang
+        new_state = replace(state, current_lang=lang)
 
         patches = []
         for component, mapping in self.originals:
@@ -219,7 +221,7 @@ class Translator:
             if isinstance(component, gr.Textbox):
                 translated["interactive"] = component.interactive
             patches.append(component.__class__(**translated))
-        return state, *patches
+        return new_state, *patches
 
     def components(self):
         return [component for component, _ in self.originals]
@@ -238,8 +240,8 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
 
             # TODO: 内部的にもJSONで持ちたい
             model_selector = gr.Dropdown(
-                choices=[model["model"] for model in state.value["enabled_models"]],
-                value=state.value["current_model"]["model"],
+                choices=[model["model"] for model in state.value.enabled_models],
+                value=state.value.current_model["model"],
                 label=t("label_model"),
                 container=False,
             )
@@ -261,7 +263,7 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
             tr.reg(tab, {"label": "tab_api"})
             with gr.Row():
                 openai_key = gr.Textbox(
-                    value=state.value["api_keys"].get("openai", ""),
+                    value=state.value.api_keys.get("openai", ""),
                     type="password",
                     placeholder=t("msg_api_key_required"),
                     label="OpenAI API Key",
@@ -284,7 +286,7 @@ with gr.Blocks(title=t("app_title"), theme="soft") as interface:
                 type="password",
                 placeholder=t("msg_api_key_required"),
                 label=t("label_api_key"),
-                value=state.value["api_keys"].get("anthropic", ""),
+                value=state.value.api_keys.get("anthropic", ""),
                 interactive=True,
             )
             tr.reg(anthropic_key, {"placeholder": "msg_api_key_required"})
