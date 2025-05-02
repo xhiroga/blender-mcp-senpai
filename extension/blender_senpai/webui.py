@@ -74,12 +74,19 @@ def masked(state: State) -> State:
     )
 
 
+# region Event Handlers
+# While React declares the UI as a callback to the state, Gradio declares the UI elements themselves.
+# Therefore, event handlers can directly reference and update UI = Component. This may be convenient for applications with only one screen.
+# However, considering future expansion, this application describes event handlers as pure functions.
+# Specifically, state (State and Component) is only accepted as arguments. Additionally, by declaring the event handlers before the interface, we avoid directly referencing the Component.
+
+# When updating state, we use `replace()` for the following reasons:
+# 1. Unlike applying differences to a Component, the values passed to outputs are replaced, even if they are dictionaries.
+# 2. Therefore, it is better to create a patch instance that updates the existing State values, but updating properties would update the original instance.
+
 ComponentValue: TypeAlias = Any
 HandlerOutputs: TypeAlias = tuple[Union[ComponentValue, gr.Component]]
 Handler: TypeAlias = Callable[[*tuple[ComponentValue], gr.Request], HandlerOutputs]
-
-# region Event Handlers
-#
 
 
 def chat_function(
