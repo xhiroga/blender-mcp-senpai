@@ -27,6 +27,12 @@ macos_intel = Platform(pypi_suffix="macosx_10_16_x86_64", metadata="macos-x64")
 platforms = [windows_x64, linux_x64, macos_arm, macos_intel]
 
 
+def clean():
+    subprocess.run(["rm", "-rf", f"{ZIP_TARGET_DIR}/wheels"])
+    subprocess.run(["rm", "-rf", f"{ZIP_TARGET_DIR}/blender_manifest.toml"])
+    subprocess.run(["rm", "-rf", OUTPUT_DIR])
+
+
 def dependencies() -> list[str]:
     with open("pyproject.toml", mode="rb") as f:
         pyproject = tomllib.load(f)
@@ -145,6 +151,8 @@ def deploy_json():
 
 
 def main():
+    clean()
+
     for platform in platforms:
         download_wheels(dependencies(), "3.11", platform)
 

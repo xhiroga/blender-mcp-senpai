@@ -40,6 +40,21 @@ uv run python -m pytest
 - [ ] Sometimes mDNS can be observed from WSL, sometimes not
 - [ ] Refactor: remove unused texts from i18n
 
+## Release
+
+```sh
+# Update version in `pyproject.toml`
+uv run --env-file .env build.py
+git add $(git rev-parse --show-toplevel)/docs/extensions/index.json
+VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+git commit -m "feat: v$VERSION"
+git tag v$VERSION
+git push
+git push --tags
+gh release create v$VERSION --generate-notes
+```
+
+
 ## References
 
 - https://github.com/BradyAJohnston/MolecularNodes
