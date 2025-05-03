@@ -7,7 +7,7 @@
       "id": "blender_senpai",
       "name": "Blender Senpai",
       "tagline": "Senpai (menter) in your use of Blender, using the MCP protocol",
-      "version": "0.1.4",
+      "version": "0.1.6",
       "type": "add-on",
       "maintainer": "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>",
       "license": [
@@ -20,60 +20,16 @@
       "python_versions": [
         "3.11"
       ],
-      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.4/blender_senpai-0.1.4-windows_x64.zip",
-      "archive_size": 116294475,
-      "archive_hash": "sha256:3f3ce287926934145edd52af1279c0967a28e51e99fc1cb597826feeb275d231"
+      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.6/blender_senpai-0.1.6-windows_x64.zip",
+      "archive_size": 107557127,
+      "archive_hash": "sha256:65abe7470966a0991dd666003505f7585befb8295448736ec360d84c1bb27a67"
     },
     {
       "schema_version": "1.0.0",
       "id": "blender_senpai",
       "name": "Blender Senpai",
       "tagline": "Senpai (menter) in your use of Blender, using the MCP protocol",
-      "version": "0.1.4",
-      "type": "add-on",
-      "maintainer": "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>",
-      "license": [
-        "UNLICENSED"
-      ],
-      "blender_version_min": "4.2.0",
-      "platforms": [
-        "macos-arm64"
-      ],
-      "python_versions": [
-        "3.11"
-      ],
-      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.4/blender_senpai-0.1.4-macos_arm64.zip",
-      "archive_size": 117412626,
-      "archive_hash": "sha256:961f4cfbb74e3cabcb5c4d4bac23e045424cdfd769081fa5c3c5bc173f5db74c"
-    },
-    {
-      "schema_version": "1.0.0",
-      "id": "blender_senpai",
-      "name": "Blender Senpai",
-      "tagline": "Senpai (menter) in your use of Blender, using the MCP protocol",
-      "version": "0.1.4",
-      "type": "add-on",
-      "maintainer": "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>",
-      "license": [
-        "UNLICENSED"
-      ],
-      "blender_version_min": "4.2.0",
-      "platforms": [
-        "macos-x64"
-      ],
-      "python_versions": [
-        "3.11"
-      ],
-      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.4/blender_senpai-0.1.4-macos_x64.zip",
-      "archive_size": 126846004,
-      "archive_hash": "sha256:8caf123598f0236aec1f1971bbd0e2573457dd5895cb768aa67e666a8b9d89af"
-    },
-    {
-      "schema_version": "1.0.0",
-      "id": "blender_senpai",
-      "name": "Blender Senpai",
-      "tagline": "Senpai (menter) in your use of Blender, using the MCP protocol",
-      "version": "0.1.4",
+      "version": "0.1.6",
       "type": "add-on",
       "maintainer": "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>",
       "license": [
@@ -86,9 +42,53 @@
       "python_versions": [
         "3.11"
       ],
-      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.4/blender_senpai-0.1.4-linux_x64.zip",
-      "archive_size": 128130123,
-      "archive_hash": "sha256:0ca9130855d3d01a62437a1462beece34325218e783ee68e6c7fcfce31996a38"
+      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.6/blender_senpai-0.1.6-linux_x64.zip",
+      "archive_size": 118449638,
+      "archive_hash": "sha256:7a8ab048d274ea9d95886fcd70769ef7cc1bd0861a787f10ebb4c2e33f499109"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "blender_senpai",
+      "name": "Blender Senpai",
+      "tagline": "Senpai (menter) in your use of Blender, using the MCP protocol",
+      "version": "0.1.6",
+      "type": "add-on",
+      "maintainer": "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>",
+      "license": [
+        "UNLICENSED"
+      ],
+      "blender_version_min": "4.2.0",
+      "platforms": [
+        "macos-x64"
+      ],
+      "python_versions": [
+        "3.11"
+      ],
+      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.6/blender_senpai-0.1.6-macos_x64.zip",
+      "archive_size": 115193451,
+      "archive_hash": "sha256:462c5e4709fa2a92520d5ae1411deb10797e9a4b29282d33f2dff32594ae9d62"
+    },
+    {
+      "schema_version": "1.0.0",
+      "id": "blender_senpai",
+      "name": "Blender Senpai",
+      "tagline": "Senpai (menter) in your use of Blender, using the MCP protocol",
+      "version": "0.1.6",
+      "type": "add-on",
+      "maintainer": "Hiroaki Ogasawara <13391129+xhiroga@users.noreply.github.com>",
+      "license": [
+        "UNLICENSED"
+      ],
+      "blender_version_min": "4.2.0",
+      "platforms": [
+        "macos-arm64"
+      ],
+      "python_versions": [
+        "3.11"
+      ],
+      "archive_url": "https://github.com/xhiroga/blender-mcp-senpai/releases/download/v0.1.6/blender_senpai-0.1.6-macos_arm64.zip",
+      "archive_size": 106565375,
+      "archive_hash": "sha256:3826faee6e8057e7e14ea7583cb118579eea89fe98e4e5c29bd90a3fb604f4b7"
     }
   ]
 }

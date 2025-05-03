@@ -34,9 +34,31 @@ def clean():
 
 
 def dependencies() -> list[str]:
-    with open("pyproject.toml", mode="rb") as f:
-        pyproject = tomllib.load(f)
-        return pyproject["project"]["dependencies"]
+    # To maintain consistency with module execution, we would prefer to specify this in override-dependencies
+    # However, in uv 0.6.11, override-dependencies can only be specified at the workspace root
+    # To avoid affecting other members, we have no choice but to exclude it during export
+    # https://github.com/astral-sh/uv/issues/13069
+    completed_proc = subprocess.run(
+        [
+            "uv",
+            "export",
+            "--package",
+            "extension",
+            # Since it is only used for specific purposes, it is excluded from requirements.txt
+            "--prune",
+            "ruff",
+            # Although gradio's comment states that python-multipart is required by fastapi-forms, it is actually imported at the top level, so excluding it will cause the application to crash
+            # Also, pandas was not possible to delete. See https://github.com/gradio-app/gradio/issues/6974 for details
+            "--no-dev",
+            "--no-annotate",
+            "--no-hashes",
+            "--no-header",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return completed_proc.stdout.splitlines()
 
 
 def get_version() -> str:
@@ -70,6 +92,7 @@ def download_wheels(
             "--only-binary=:all:",
             f"--python-version={python_version}",
             f"--platform={platform.pypi_suffix}",
+            "--no-deps",  # deps are resolved by uv export
         ],
     )
 
