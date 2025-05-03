@@ -10,7 +10,12 @@ app = FastAPI()
 
 class BlenderCommand(BaseModel):
     type: Literal[
-        "get_resources", "get_resource", "execute_code", "import_file", "get_prompt"
+        "get_context",
+        "get_resources",
+        "get_resource",
+        "execute_code",
+        "import_file",
+        "get_prompt",
     ]
     code: str | None = None
     resource_type: str | None = None
@@ -33,6 +38,10 @@ async def websocket_endpoint(websocket: WebSocket):
                         if command.code:
                             result = await execute_code(command.code)
                             await websocket.send_json(result)
+
+                    case "get_context":
+                        result = get_context()
+                        await websocket.send_json(result)
 
                     case "get_resources":
                         result = get_objects()

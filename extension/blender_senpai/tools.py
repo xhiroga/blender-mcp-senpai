@@ -10,6 +10,7 @@ from typing import Any, Callable, Literal, ParamSpec, TypedDict, TypeVar
 
 import bpy
 
+from .log_config import configure
 from .system_prompt import SYSTEM_PROMPT
 from .utils import mainthreadify
 
@@ -76,6 +77,38 @@ def execute_code(code: str) -> Result:
     except Exception as e:
         logger.error(f"{e}")
         return {"status": "error", "payload": str(e)}
+
+
+@tool(
+    parameters={
+        "type": "object",
+        "properties": {},
+        "required": [],
+    },
+)
+def get_context() -> Result[Any]:
+    """Get the current Blender context."""
+    windows = [window for window in bpy.context.window_manager.windows]
+    payload = {
+        "window_manager": {"windows": []},
+    }
+    for window in windows:
+        info = {"screen": {"areas": []}}
+        for area in window.screen.areas:
+            area_info = {"type": area.type, "ui_type": area.ui_type, "spaces": []}
+            for space in area.spaces:
+                space_info = {"type": space.type}
+                match space.type:
+                    case "VIEW_3D":
+                        space_info["view_3d"] = {
+                            "show_gizmo": space.show_gizmo,
+                        }
+                area_info["spaces"].append(space_info)
+            info["screen"]["areas"].append(area_info)
+        payload["window_manager"]["windows"].append(info)
+
+    logger.info(f"{payload=}")
+    return {"status": "ok", "payload": payload}
 
 
 @tool(
@@ -308,5 +341,6 @@ tool_functions: dict[str, Callable[P, T]] = {
 }
 
 if __name__ == "__main__":
+    configure(mode="standalone")
     print(f"{tools=}")
     print(f"{tool_functions=}")

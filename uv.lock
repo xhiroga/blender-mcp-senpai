@@ -277,6 +277,7 @@ dev = [
     { name = "fake-bpy-module" },
     { name = "numpy" },
     { name = "pip" },
+    { name = "pytest" },
     { name = "tomlkit" },
 ]
 
@@ -296,6 +297,7 @@ dev = [
     { name = "fake-bpy-module", specifier = ">=20250423" },
     { name = "numpy", specifier = "<2" },
     { name = "pip", specifier = ">=25.1" },
+    { name = "pytest", specifier = ">=8.3.5" },
     { name = "tomlkit", specifier = ">=0.13.2" },
 ]
 
