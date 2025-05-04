@@ -90,6 +90,9 @@ def get_context() -> Result[Any]:
     """Get the current Blender context."""
     windows = [window for window in bpy.context.window_manager.windows]
     payload = {
+        "blend_data": {
+            "file_path": bpy.data.filepath,
+        },
         "window_manager": {"windows": []},
     }
     for window in windows:
