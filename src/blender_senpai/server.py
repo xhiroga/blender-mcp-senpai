@@ -43,7 +43,7 @@ class Server:
         self.port = self._get_port(default_port)
 
         app = fast_mcp.sse_app()
-        gradio_app = gr.mount_gradio_app(app, interface, path="/")
+        gradio_app = gr.mount_gradio_app(app, interface, path="")
 
         logger.info(
             f"Starting FastAPI server with Gradio UI and SSE endpoint on {default_host}:{self.port}"

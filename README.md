@@ -52,7 +52,7 @@ uv run python -m pytest
 # Update version in `pyproject.toml`
 uv run --env-file .env build.py
 # Install extension to Blender and check if it works.
-git add $(git rev-parse --show-toplevel)/docs/extensions/index.json $(git rev-parse --show-toplevel)/extension/pyproject.toml $(git rev-parse --show-toplevel)/uv.lock
+git add docs/extensions/index.json pyproject.toml uv.lock
 VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
 git commit -m "feat: v$VERSION"
 git tag v$VERSION
@@ -73,9 +73,7 @@ echo "Upload zip file to https://github.com/xhiroga/blender-mcp-senpai/releases/
 - [ ] Send Blender screenshot through MCP
 - [ ] Embed logo
 - [ ] Store chat history and API keys securely
-- [ ] Sometimes mDNS can be observed from WSL, sometimes not
 - [ ] Refactor: remove unused texts from i18n
-- [ ] Reduce binary size. Use `pip install gradio --no-deps` and Carefully select dependencies
 
 ## Inspiration
 
