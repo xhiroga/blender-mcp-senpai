@@ -5,6 +5,8 @@ from functools import wraps
 from logging import getLogger
 from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
 
+import bpy
+
 T = TypeVar("T")
 P = ParamSpec("P")
 
@@ -43,6 +45,12 @@ def mainthreadify(
         @wraps(function)
         async def wrapper(*args: P.args, **kwargs: P.kwargs):
             logger.info(f"{function.__name__}, {args=}, {kwargs=}")
+
+            if not bpy.app.timers.is_registered(execute_queued_functions):
+                logger.info("Not inside Blender")
+                result = function(*args, **kwargs)
+                logger.info(f"{function.__name__}, {result=}")
+                return result
 
             conc_future: concurrent.futures.Future[T] = concurrent.futures.Future()
             execution_queue.put(

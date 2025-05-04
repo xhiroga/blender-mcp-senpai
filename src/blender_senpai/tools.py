@@ -92,7 +92,7 @@ def get_context() -> Result[Any]:
     """Get the current Blender context."""
     payload = {
         "blend_data": {
-            "file_path": bpy.data.filepath,
+            "file_path": bpy.context.blend_data.filepath,
         },
         "preferences": {},
         "window": {},
