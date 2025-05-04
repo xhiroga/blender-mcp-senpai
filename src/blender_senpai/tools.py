@@ -79,6 +79,7 @@ def execute_code(code: str) -> Result:
         return {"status": "error", "payload": str(e)}
 
 
+# bpy.context is managed per thread, so it needs to be executed in the main thread even though it's not an update operation
 @tool(
     parameters={
         "type": "object",
@@ -86,6 +87,7 @@ def execute_code(code: str) -> Result:
         "required": [],
     },
 )
+@mainthreadify()
 def get_context() -> Result[Any]:
     """Get the current Blender context."""
     payload = {
