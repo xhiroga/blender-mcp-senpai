@@ -49,6 +49,7 @@ class ReadResourceContents(TypedDict):
     mime_type: str
 
 
+@mainthreadify()
 @tool(
     parameters={
         "type": "object",
@@ -62,7 +63,6 @@ class ReadResourceContents(TypedDict):
         "required": ["code"],
     },
 )
-@mainthreadify()
 def execute_code(code: str) -> Result:
     """Execute the given Python code in Blender and return the standard output."""
     logger.info(f"{code=}")
@@ -80,6 +80,7 @@ def execute_code(code: str) -> Result:
 
 
 # bpy.context is managed per thread, so it needs to be executed in the main thread even though it's not an update operation
+@mainthreadify()
 @tool(
     parameters={
         "type": "object",
@@ -87,7 +88,6 @@ def execute_code(code: str) -> Result:
         "required": [],
     },
 )
-@mainthreadify()
 def get_context() -> Result[Any]:
     """Get the current Blender context."""
     payload = {
@@ -283,6 +283,7 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
     }
 
 
+@mainthreadify()
 @tool(
     parameters={
         "type": "object",
@@ -296,7 +297,6 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
         "required": ["file_path"],
     },
 )
-@mainthreadify()
 def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
     """Import a 3D file and return the imported objects."""
     logger.info(f"{file_path=}")

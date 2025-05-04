@@ -74,6 +74,7 @@ server = Server()
 
 if __name__ == "__main__":
     configure(mode="standalone")
+
     try:
         server.run()
     finally:

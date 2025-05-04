@@ -14,6 +14,6 @@ def get_sse_app():
 
     for tool in tool_functions.values():
         fast_mcp.add_tool(tool)
-        logger.debug(f"Registered tool: {tool.__name__}")
+        logger.info(f"Registered tool: {tool.__name__}")
 
     return fast_mcp.sse_app()
