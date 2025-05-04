@@ -5,6 +5,15 @@ from pathlib import Path
 from typing import Any, Dict
 
 import bpy
+import mathutils
+
+_MATHUTILS_TYPES = (
+    mathutils.Vector,
+    mathutils.Matrix,
+    mathutils.Quaternion,
+    mathutils.Euler,
+    mathutils.Color,
+)
 
 
 def _is_module(obj: Any) -> bool:
@@ -17,34 +26,53 @@ def _is_bpy_struct(obj: Any) -> bool:
     return isinstance(obj, bpy.types.bpy_struct)
 
 
-def _is_traversable(obj: Any) -> bool:
-    return _is_module(obj) or _is_bpy_struct(obj)
+def _is_bpy_collection(obj: Any) -> bool:
+    """ex. bpy.context.blend_data.collections, ..."""
+    return isinstance(obj, bpy.types.bpy_prop_collection)
 
 
-def dump(obj: Any, *, depth: int = 0, max_depth: int = 5) -> dict[str, Any]:
+def _is_mathutils(obj: Any) -> bool:
+    return isinstance(obj, _MATHUTILS_TYPES)
+
+
+def dump(obj: Any, *, depth: int = 0, max_depth: int = 8) -> Any:
+    # mathutils types sometimes crash when repr is called from C side; return placeholder
+    # check BEFORE depth limit to avoid hitting repr(obj) on these types
+    if _is_mathutils(obj):
+        return f"<{obj.__class__.__name__}>"
+
     if depth > max_depth:
         return repr(obj)
 
-    if not _is_traversable(obj):
-        return repr(obj)
+    if _is_module(obj) or _is_bpy_struct(obj):
+        out: Dict[str, Any] = {}
+        for attr in dir(obj):
+            if attr.startswith("_"):
+                continue
 
-    out: Dict[str, Any] = {}
-    for attr in dir(obj):
-        if attr.startswith("_"):
-            continue
+            try:
+                value = getattr(obj, attr)
+                if attr == "bl_rna" or attr == "rna_type":
+                    dumped = repr(value)
+                else:
+                    dumped = dump(value, depth=depth + 1, max_depth=max_depth)
+                out[attr] = dumped
 
-        try:
-            value = getattr(obj, attr)
-        except Exception as e:
-            out[attr] = f"<error: {e}>"
-            continue
+            except Exception as e:
+                out[attr] = f"<error: {e}>"
 
-        out[attr] = dump(value, depth=depth + 1, max_depth=max_depth)
+        return out
 
-    return out
+    if _is_bpy_collection(obj):
+        out: Dict[str, Any] = {}
+        for key, value in obj.items():
+            out[key] = dump(value, depth=depth + 1, max_depth=max_depth)
+        return out
+
+    return repr(obj)
 
 
 if __name__ == "__main__":
     log_dir = Path(bpy.utils.user_resource("CONFIG", path="dumps", create=True))
     with open(log_dir / f"bpy_{time.strftime('%Y%m%d_%H%M%S')}.json", "w") as f:
-        json.dump(dump(bpy, depth=0, max_depth=5), f, ensure_ascii=False, indent=2)
+        json.dump(dump(bpy, depth=0, max_depth=8), f, ensure_ascii=False, indent=2)
