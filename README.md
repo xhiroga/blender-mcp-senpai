@@ -38,11 +38,7 @@ TODO...
 
 ## Development
 
-```sh
-npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse https://localhost:13180/sse
-```
-
-Also, see [.github/pull_request_template.md](.github/pull_request_template.md).
+See [.github/pull_request_template.md](.github/pull_request_template.md).
 
 ## Test
 

@@ -18,3 +18,6 @@
 ## Meta Rules
 
 - Even if the instructions are in Japanese, write comments in the code in English.
+- The project uses uv. When running `python`, use `uv run python`.
+  - Example 1: `uv run python -c "import mcp.server.fastmcp as fm; print(fm.__file__)" | cat`
+  - Example 2: `uv run -m src.blender_senpai.server`

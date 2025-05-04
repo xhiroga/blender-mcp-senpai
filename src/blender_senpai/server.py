@@ -1,39 +1,36 @@
 import asyncio
 import socket
+from logging import getLogger
 
 import gradio as gr
 import uvicorn
-from fastapi.middleware.cors import CORSMiddleware
 
-from .app import app
-from .mdns import register_service, unregister_service
+from .fast_mcp import fast_mcp
 from .webui import interface
 
-
-def get_port(default_port=None):
-    """Get a port: if default_port is provided and free, use it; otherwise find an available port."""
-    if default_port is not None:
-        try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(("", default_port))
-                s.listen(1)
-            return default_port
-        except OSError:
-            pass
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("", 0))
-        s.listen(1)
-        return s.getsockname()[1]
+logger = getLogger(__name__)
 
 
 class Server:
     def __init__(self):
         self.server = None
-        self.type = "_blender-senpai._tcp.local."
-        self.name = None
         self.port = None
-        self.zeroconf = None
-        self.service_info = None
+
+    @staticmethod
+    def _get_port(default_port=None):
+        """Get a port: if default_port is provided and free, use it; otherwise find an available port."""
+        if default_port is not None:
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(("", default_port))
+                    s.listen(1)
+                return default_port
+            except OSError:
+                pass
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("", 0))
+            s.listen(1)
+            return s.getsockname()[1]
 
     def run(self, default_host="127.0.0.1", default_port=13180):
         # In Python, there is no default event loop except for main thread.
@@ -43,31 +40,21 @@ class Server:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        self.port = get_port(default_port)
+        self.port = self._get_port(default_port)
 
-        self.name = f"blender-{self.port}"
-
-        self.zeroconf, self.service_info = register_service(
-            self.type,
-            self.name,
-            self.port,
-            {},
-            [default_host],
-        )
-
-        # CORSミドルウェアを追加
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
-
+        app = fast_mcp.sse_app()
         gradio_app = gr.mount_gradio_app(app, interface, path="/")
 
+        logger.info(
+            f"Starting FastAPI server with Gradio UI and SSE endpoint on {default_host}:{self.port}"
+        )
+
         config = uvicorn.Config(
-            gradio_app, host=default_host, port=self.port, loop="asyncio"
+            gradio_app,
+            host=default_host,
+            port=self.port,
+            loop="asyncio",
+            log_level="info",
         )
         self.server = uvicorn.Server(config)
 
@@ -75,9 +62,6 @@ class Server:
         self.server.run()
 
     def stop(self):
-        if self.zeroconf and self.service_info:
-            unregister_service(self.zeroconf, self.service_info)
-
         if self.server:
             # If do not set force_exit, Uvicorn will not exit until the connection is closed when the browser opens the Gradio page.
             self.server.force_exit = True
