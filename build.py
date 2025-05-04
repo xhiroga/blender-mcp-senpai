@@ -8,9 +8,9 @@ import bpy
 import tomlkit
 
 PLATFORMS = ["windows-x64", "linux-x64", "macos-arm64", "macos-x64"]
-ZIP_TARGET_DIR = "blender_senpai"
+ZIP_TARGET_DIR = "src/blender_senpai"
 OUTPUT_DIR = "output"
-DOCS_EXTENSIONS_DIR = "../docs/extensions"
+DOCS_EXTENSIONS_DIR = "docs/extensions"
 
 
 @dataclass
@@ -43,7 +43,7 @@ def dependencies() -> list[str]:
             "uv",
             "export",
             "--package",
-            "extension",
+            "blender_senpai",
             # Since it is only used for specific purposes, it is excluded from requirements.txt
             "--prune",
             "ruff",

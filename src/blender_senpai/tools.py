@@ -131,7 +131,7 @@ def get_context() -> Result[Any]:
                     }
             area_info["spaces"].append(space_info)
         window_info["screen"]["areas"].append(area_info)
-    payload["window"]["screen"]["areas"].append(window_info)
+    payload["window"] = window_info
 
     logger.info(f"{payload=}")
     return {"status": "ok", "payload": payload}

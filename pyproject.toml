@@ -1,16 +1,30 @@
 [project]
-name = "blender-mcp-senpai"
-version = "0.1.0"
-requires-python = ">=3.11"
+name = "blender-senpai"
+version = "0.2.0"
+requires-python = "==3.11.10"
 dependencies = [
-    "aiohttp>=3.11.18",
-    "mcp>=1.6.0",
+    "fastapi>=0.115.12",
+    "gradio>=5.29.0",
+    "litellm>=1.67.5",
+    "pydantic>=2.11.3",
     "websockets>=15.0.1",
     "zeroconf>=0.146.5",
 ]
 
-[project.scripts]
-blender-mcp-senpai = "blender_mcp_senpai:main"
+[dependency-groups]
+dev = [
+    "bpy>=4.4.0",
+    "fake-bpy-module>=20250423",
+    "numpy<2",
+    "pip>=25.1", # Use pip that matches the version of the virtual environment, not the system pip. Avoid https://github.com/pypa/pip/issues/11664.
+    "pytest>=8.3.5",
+    "tomlkit>=0.13.2",
+]
+
+[tool.pytest.ini_options]
+addopts = "-vv --tb=short -s"
+pythonpath = ["src"]
+testpaths = ["tests"]
 
 [tool.uv.workspace]
-members = ["extension", "rag"]
+members = ["rag"]
