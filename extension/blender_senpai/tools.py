@@ -93,8 +93,32 @@ def get_context() -> Result[Any]:
         "blend_data": {
             "file_path": bpy.data.filepath,
         },
+        "preferences": {},
         "window_manager": {"windows": []},
     }
+
+    # First, prioritize settings that are often mentioned in videos for beginners.
+    inputs = bpy.context.preferences.inputs
+    inputs_info = {}
+    # Orbit Method
+    inputs_info["view_rotate_method"] = inputs.view_rotate_method
+    # Orbit Sensitivity
+    if inputs.view_rotate_method == "TRACKBALL":
+        inputs_info["view_rotate_sensitivity_trackball"] = (
+            inputs.view_rotate_sensitivity_trackball
+        )
+    elif inputs.view_rotate_method == "NUMPAD":
+        inputs_info["view_rotate_sensitivity_turntable"] = (
+            inputs.view_rotate_sensitivity_turntable
+        )
+    # Orbit Around Selection
+    inputs_info["use_rotate_around_active"] = inputs.use_rotate_around_active
+
+    # Zoom to Mouse Position
+    inputs_info["use_zoom_to_mouse"] = inputs.use_zoom_to_mouse
+
+    payload["preferences"]["inputs"] = inputs_info
+
     for window in windows:
         info = {"screen": {"areas": []}}
         for area in window.screen.areas:
