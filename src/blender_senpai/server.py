@@ -27,6 +27,7 @@ class Server:
                     s.listen(1)
                 return default_port
             except OSError:
+                logger.warning(f"Port {default_port} is already in use")
                 pass
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(("", 0))

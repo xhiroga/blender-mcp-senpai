@@ -15,10 +15,13 @@
 ## ✅ Manual QA
 
 - [ ] `uv run --env-file .env build.py` successfully built
+  - [ ] `curl -N http://localhost:${PORT}/sse`
+  - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:${PORT}/sse`
+  - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed
 - [ ] `uv run -m src.blender_senpai.server`
-  - [ ] `curl -N http://localhost:13180/sse`
-  - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:13180/sse`
-- [ ] `uv run -m src.blender_senpai.webui` successfully started
+  - [ ] `curl -N http://localhost:${PORT}/sse`
+  - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:${PORT}/sse`
+  - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed
 
 ## 👂 etc
 
