@@ -14,10 +14,9 @@
 
 ## ✅ Manual QA
 
-- extension
-  - `uv run --env-file .env build.py` successfully built
-  - `uv run -m extension.blender_senpai.server` successfully started
-  - `uv run -m extension.blender_senpai.webui` successfully started
+- [ ] `uv run --env-file .env build.py` successfully built
+- [ ] `uv run -m src.blender_senpai.server` successfully started
+- [ ] `uv run -m src.blender_senpai.webui` successfully started
 
 ## 👂 etc
 
