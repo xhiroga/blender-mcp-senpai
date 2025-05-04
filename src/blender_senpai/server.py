@@ -5,7 +5,8 @@ from logging import getLogger
 import gradio as gr
 import uvicorn
 
-from .fast_mcp import fast_mcp
+from .fast_mcp import get_sse_app
+from .log_config import configure
 from .webui import interface
 
 logger = getLogger(__name__)
@@ -42,7 +43,7 @@ class Server:
 
         self.port = self._get_port(default_port)
 
-        app = fast_mcp.sse_app()
+        app = get_sse_app()
         gradio_app = gr.mount_gradio_app(app, interface, path="")
 
         logger.info(
@@ -72,6 +73,7 @@ server = Server()
 
 
 if __name__ == "__main__":
+    configure(mode="standalone")
     try:
         server.run()
     finally:

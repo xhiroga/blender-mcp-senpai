@@ -39,7 +39,7 @@ model_configs: list[ModelConfig] = [
     {"provider": "gemini", "model": "gemini-2.5-pro-preview-03-25", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash-lite", "default": False},
-    # Debug mock provider – echo back without external request
+    # Debug provider to show the tutorial
     {"provider": "tutorial", "model": "Tutorial", "default": True},
 ]
 
