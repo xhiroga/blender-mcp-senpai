@@ -13,8 +13,11 @@
 - Define `logger = getLogger(__name__)` at the beginning of each file.
 - When checking values in logs, it is common to use a combination of the f-string and the equal operator.
   - Example: `print(f"{history=}")`
-- Comments that are obvious from the code are unnecessary. Write “Why Not” in cases where the original design was incorrect.
+- Comments that are obvious from the code are unnecessary. Write why not in cases where the original design was incorrect.
 
 ## Meta Rules
 
 - Even if the instructions are in Japanese, write comments in the code in English.
+- The project uses uv. When running `python`, use `uv run python`.
+  - Example 1: `uv run python -c "import mcp.server.fastmcp as fm; print(fm.__file__)" | cat`
+  - Example 2: `uv run -m src.blender_senpai.server`

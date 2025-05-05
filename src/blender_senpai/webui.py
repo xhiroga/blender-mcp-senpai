@@ -9,7 +9,6 @@ import litellm
 
 from .i18n import Lang, t
 from .llm import completion
-from .log_config import configure
 from .repositories.api_key_repository import ApiKeyRepository
 from .repositories.history_repository import HistoryRepository
 
@@ -39,7 +38,7 @@ model_configs: list[ModelConfig] = [
     {"provider": "gemini", "model": "gemini-2.5-pro-preview-03-25", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash-lite", "default": False},
-    # Debug mock provider – echo back without external request
+    # Debug provider to show the tutorial
     {"provider": "tutorial", "model": "Tutorial", "default": True},
 ]
 
@@ -451,8 +450,3 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
         inputs=[state],
         outputs=[state, *tr.components()],
     )
-
-
-if __name__ == "__main__":
-    configure(mode="standalone")
-    interface.launch()

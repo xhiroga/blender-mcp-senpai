@@ -49,6 +49,7 @@ class ReadResourceContents(TypedDict):
     mime_type: str
 
 
+@mainthreadify()
 @tool(
     parameters={
         "type": "object",
@@ -62,7 +63,6 @@ class ReadResourceContents(TypedDict):
         "required": ["code"],
     },
 )
-@mainthreadify()
 def execute_code(code: str) -> Result:
     """Execute the given Python code in Blender and return the standard output."""
     logger.info(f"{code=}")
@@ -79,6 +79,8 @@ def execute_code(code: str) -> Result:
         return {"status": "error", "payload": str(e)}
 
 
+# bpy.context is managed per thread, so it needs to be executed in the main thread even though it's not an update operation
+@mainthreadify()
 @tool(
     parameters={
         "type": "object",
@@ -90,7 +92,7 @@ def get_context() -> Result[Any]:
     """Get the current Blender context."""
     payload = {
         "blend_data": {
-            "file_path": bpy.data.filepath,
+            "file_path": bpy.context.blend_data.filepath,
         },
         "preferences": {},
         "window": {},
@@ -131,7 +133,7 @@ def get_context() -> Result[Any]:
                     }
             area_info["spaces"].append(space_info)
         window_info["screen"]["areas"].append(area_info)
-    payload["window"]["screen"]["areas"].append(window_info)
+    payload["window"] = window_info
 
     logger.info(f"{payload=}")
     return {"status": "ok", "payload": payload}
@@ -281,6 +283,7 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
     }
 
 
+@mainthreadify()
 @tool(
     parameters={
         "type": "object",
@@ -294,7 +297,6 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
         "required": ["file_path"],
     },
 )
-@mainthreadify()
 def import_file(file_path: str) -> Result[list[ReadResourceContents]]:
     """Import a 3D file and return the imported objects."""
     logger.info(f"{file_path=}")
