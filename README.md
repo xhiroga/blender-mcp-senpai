@@ -15,10 +15,10 @@ TODO...
 - Open Blender
 - Go to `Edit` > `Preferences` > `Get Extensions` > `Repositories` > `+` > `Add Remote Repository`
 - Add `https://xhiroga.github.io/blender-mcp-senpai/extensions/index.json`
-- Search `MCP Senpai` and install it
-- `Add-ons` > `MCP Senpai` > Enable it
+- Search `Blender Senpai` and install it
+- `Add-ons` > `Blender Senpai` > Enable it
 
-### To Claude / Cursor / Other AI Agents
+### To Claude
 
 ```json
 {
@@ -29,10 +29,27 @@ TODO...
                 "-y",
                 "supergateway",
                 "--sse",
-                "https://localhost:13180/sse"
+                "http://localhost:13180/sse"
             ]
         }
     }
+}
+```
+
+### To Dive
+
+```json
+{
+  "mcpServers": {
+    "blender-senpai": {
+      "transport": "sse",
+      "enabled": true,
+      "command": null,
+      "args": [],
+      "env": {},
+      "url": "http://localhost:13180/sse"
+    }
+  }
 }
 ```
 

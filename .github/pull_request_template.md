@@ -14,6 +14,7 @@
 
 ## ✅ Manual QA
 
+- [ ] `uv run -m pytest`
 - [ ] `uv run --env-file .env build.py` successfully built
   - [ ] `curl -N http://localhost:${PORT}/sse`
   - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:${PORT}/sse`
@@ -22,6 +23,8 @@
   - [ ] `curl -N http://localhost:${PORT}/sse`
   - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:${PORT}/sse`
   - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed
+- [ ] Open Claude Desktop
+  - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed TWICE
 
 ## 👂 etc
 

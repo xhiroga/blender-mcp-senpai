@@ -18,6 +18,7 @@ execution_queue = queue.Queue()
 def execute_queued_functions():
     while not execution_queue.empty():
         function = execution_queue.get()
+        logger.info(f"Executing function: {function.__name__}")
         function()
     INTERVAL = 0
     return INTERVAL
