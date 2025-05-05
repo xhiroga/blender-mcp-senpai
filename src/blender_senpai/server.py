@@ -65,9 +65,9 @@ class Server:
 
     def stop(self):
         if self.server:
+            self.server.should_exit = True
             # If do not set force_exit, Uvicorn will not exit until the connection is closed when the browser opens the Gradio page.
             self.server.force_exit = True
-            self.server.should_exit = True
 
 
 server = Server()
