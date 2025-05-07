@@ -35,7 +35,7 @@ model_configs: list[ModelConfig] = [
     # https://docs.litellm.ai/docs/providers/gemini
     # https://ai.google.dev/gemini-api/docs/models
     {"provider": "gemini", "model": "gemini-2.5-flash-preview-04-17", "default": True},
-    {"provider": "gemini", "model": "gemini-2.5-pro-preview-03-25", "default": False},
+    {"provider": "gemini", "model": "gemini-2.5-pro-preview-05-06", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash-lite", "default": False},
     # Debug provider to show the tutorial
