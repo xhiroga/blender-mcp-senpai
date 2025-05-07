@@ -4,7 +4,6 @@ from logging import getLogger
 from typing import Any, TypedDict
 
 import litellm
-from litellm import ChatCompletionMessageToolCall
 
 from .i18n import Lang
 from .system_prompt import SYSTEM_PROMPT
@@ -69,14 +68,14 @@ async def completion(
     logger.info(f"{str(raw_response)=}")
 
     first_choice = raw_response["choices"][0]["message"]
-    if (content := first_choice.get("content")) is not None:
-        return content.strip()
-
-    tool_calls: list[ChatCompletionMessageToolCall] = first_choice.tool_calls
-    if tool_calls is None:
-        return ""
-
     messages.append(first_choice)
+
+    # Anthropic models can return both tool_calls and content simultaneously
+    if (tool_calls := first_choice.get("tool_calls")) is None:
+        if (content := first_choice.get("content")) is not None:
+            return content.strip()
+        else:
+            return ""
 
     for tool_call in tool_calls:
         try:
@@ -111,7 +110,11 @@ async def completion(
         )
 
     followup = await litellm.acompletion(
-        model=model, api_key=api_key, messages=messages
+        model=model,
+        api_key=api_key,
+        messages=messages,
+        tools=[],
+        tool_choice="none",
     )
     logger.info(f"{str(followup)=}")
     follow_choice = followup["choices"][0]["message"]

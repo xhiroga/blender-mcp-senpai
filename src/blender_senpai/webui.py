@@ -107,7 +107,7 @@ async def chat_function(
     `anyio.to_thread.run_sync(fn, *args, **kwargs)  # Code is for illustration`
     Therefore, callbacks that indirectly operate on `bpy` should be written as asynchronous functions.
     """
-    logger.info(f"{message=}, {history=}, {state=}, {request=}")
+    logger.info(f"{message=}, {history=}, {masked(state)=}, {request=}")
 
     conversation_id = state.current_conversation_id
     HistoryRepository.create(conversation_id, "user", message)
@@ -143,9 +143,9 @@ chat_function_alias: Handler = chat_function
 
 def register_api_key_with(provider: Provider) -> Handler:
     def register_api_key(
-        state: State, api_key: str, current_model: str, _request: gr.Request
+        state: State, api_key: str, _request: gr.Request
     ) -> tuple[State, str, bool, gr.Dropdown]:
-        logger.info(f"{provider=}, api_key={api_key[:5]}..., {current_model=}")
+        logger.info(f"{provider=}, {masked(state)=}, api_key={api_key[:5]}...")
         try:
             default_model = next(
                 filter(
@@ -166,7 +166,9 @@ def register_api_key_with(provider: Provider) -> Handler:
                 model for model in model_configs if model["provider"] in providers
             )
             current_model = (
-                current_model if current_model in enabled_models else enabled_models[0]
+                state.current_model
+                if state.current_model in enabled_models
+                else enabled_models[0]
             )
 
             new_state = replace(
@@ -427,21 +429,21 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
             gr.on(
                 triggers=[openai_key.submit, openai_key_verify_button.click],
                 fn=register_api_key_with("openai"),
-                inputs=[state, openai_key, model_selector],
+                inputs=[state, openai_key],
                 outputs=[state, result, openai_key_checkbox, model_selector],
             )
 
             gr.on(
                 triggers=[anthropic_key.submit, anthropic_key_verify_button.click],
                 fn=register_api_key_with("anthropic"),
-                inputs=[state, anthropic_key, model_selector],
+                inputs=[state, anthropic_key],
                 outputs=[state, result, anthropic_key_checkbox, model_selector],
             )
 
             gr.on(
                 triggers=[gemini_key.submit, gemini_key_verify_button.click],
                 fn=register_api_key_with("gemini"),
-                inputs=[state, gemini_key, model_selector],
+                inputs=[state, gemini_key],
                 outputs=[state, result, gemini_key_checkbox, model_selector],
             )
 
