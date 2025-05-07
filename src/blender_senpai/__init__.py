@@ -1,9 +1,11 @@
 import os
 import threading
 import tomllib
+import webbrowser
 from logging import getLogger
 
 import bpy
+from bpy.types import Operator, Panel
 
 from .log_config import configure
 from .server import server
@@ -22,6 +24,36 @@ def read_manifest() -> dict:
         return {}
 
 
+class BLENDER_SENPAI_OT_open_server(Operator):
+    bl_idname = "blender_senpai.open_server"
+    bl_label = "Open Server"
+    bl_description = "Open server URL in browser"
+
+    def execute(self, context):
+        url = f"http://{server.host}:{server.port}"
+        webbrowser.open(url)
+        return {"FINISHED"}
+
+
+class BLENDER_SENPAI_PT_server(Panel):
+    bl_label = "Server"
+    bl_idname = "BLENDER_SENPAI_PT_server"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Blender Senpai"
+
+    def draw(self, context):
+        layout = self.layout
+        layout.operator(
+            BLENDER_SENPAI_OT_open_server.bl_idname,
+            text=f"Open http://{server.host}:{server.port}",
+            icon="URL",
+        )
+
+
+classes = (BLENDER_SENPAI_OT_open_server, BLENDER_SENPAI_PT_server)
+
+
 def register():
     """
     Called at Blender startup and when reinstalling extensions.
@@ -36,6 +68,9 @@ def register():
         f"Hello from extension! Blender :{bpy.app.version_string}, Extension: {manifest.get('version', 'unknown')}, Git commit: {manifest.get('commit', 'unknown')}"
     )
 
+    for cls in classes:
+        bpy.utils.register_class(cls)
+
     bpy.app.timers.register(execute_queued_functions)
     threading.Thread(target=server.run).start()
 
@@ -43,3 +78,6 @@ def register():
 def unregister():
     logger.info("Goodbye from extension!")
     server.stop()
+
+    for cls in classes:
+        bpy.utils.unregister_class(cls)

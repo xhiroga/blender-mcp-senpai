@@ -15,7 +15,8 @@ logger = getLogger(__name__)
 class Server:
     def __init__(self):
         self.server = None
-        self.port = None
+        self.host = "127.0.0.1"
+        self.port = 13180
 
     @staticmethod
     def _get_port(default_port=None):
@@ -34,7 +35,7 @@ class Server:
             s.listen(1)
             return s.getsockname()[1]
 
-    def run(self, default_host="127.0.0.1", default_port=13180):
+    def run(self):
         # In Python, there is no default event loop except for main thread.
         try:
             asyncio.get_running_loop()
@@ -42,18 +43,18 @@ class Server:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        self.port = self._get_port(default_port)
+        self.port = self._get_port(self.port)
 
         app = get_sse_app()
         gradio_app = gr.mount_gradio_app(app, interface, path="")
 
         logger.info(
-            f"Starting FastAPI server with Gradio UI and SSE endpoint on {default_host}:{self.port}"
+            f"Starting FastAPI server with Gradio UI and SSE endpoint on {self.host}:{self.port}"
         )
 
         config = uvicorn.Config(
             gradio_app,
-            host=default_host,
+            host=self.host,
             port=self.port,
             loop="asyncio",
             log_level="info",
