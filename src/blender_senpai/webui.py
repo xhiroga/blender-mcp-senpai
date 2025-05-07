@@ -82,6 +82,7 @@ def masked(state: State) -> State:
 # endregion
 
 # region Event Handlers
+
 # While React declares the UI as a callback to the state, Gradio declares the UI elements themselves.
 # Therefore, event handlers can directly reference and update UI = Component. This may be convenient for applications with only one screen.
 # However, considering future expansion, this application describes event handlers as pure functions.
@@ -144,7 +145,7 @@ chat_function_alias: Handler = chat_function
 def register_api_key_with(provider: Provider) -> Handler:
     def register_api_key(
         state: State, api_key: str, _request: gr.Request
-    ) -> tuple[State, str, bool, gr.Dropdown]:
+    ) -> tuple[State, gr.Button, str, gr.Dropdown]:
         logger.info(f"{provider=}, {masked(state)=}, api_key={api_key[:5]}...")
         try:
             default_model = next(
@@ -178,8 +179,13 @@ def register_api_key_with(provider: Provider) -> Handler:
                 current_model=current_model,
             )
 
+            button = gr.Button(
+                value=t("label_verified", state.current_lang),
+                variant="primary",
+            )
+
             result = "OK"
-            is_registered = True
+
             model_selector = gr.Dropdown(
                 choices=[
                     (f"{model['model']} ({model['provider']})", json.dumps(model))
@@ -190,15 +196,31 @@ def register_api_key_with(provider: Provider) -> Handler:
 
             # AttributeError: 'Dropdown' object has no attribute 'value'
             logger.info(
-                f"{masked(new_state)=}, {result=}, {is_registered=}, {model_selector.change=}"
+                f"{masked(new_state)=}, {button=}, {result=},{model_selector.change=}"
             )
-            return new_state, result, is_registered, model_selector
+            return new_state, button, result, model_selector
 
         except Exception as e:
             logger.exception(e)
-            return gr.skip(), f"NG: {e}", False, gr.skip()
+            button = gr.Button(
+                value=t("label_verify_error", state.current_lang),
+                variant="stop",
+            )
+            return gr.skip(), button, f"NG: {e}", gr.skip()
 
     return register_api_key
+
+
+def change_api_key_with(provider: Provider) -> Handler:
+    def change_api_key(
+        state: State, button: gr.Button, _request: gr.Request
+    ) -> tuple[gr.Button]:
+        return gr.Button(
+            value=t("label_verify", state.current_lang),
+            variant="huggingface",
+        )
+
+    return change_api_key
 
 
 def update_current_model(state: State, model_json: str, _request: gr.Request) -> State:
@@ -213,9 +235,6 @@ def update_current_model(state: State, model_json: str, _request: gr.Request) ->
             )
         ),
     )
-
-
-update_current_model: Handler = update_current_model
 
 
 class Translator:
@@ -323,20 +342,11 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                 show_label=False,
                 container=False,
             )
-
             with gr.Row(equal_height=True):
-                openai_key_checkbox = gr.Checkbox(
-                    value=False,
-                    label="",
-                    show_label=False,
-                    container=False,
-                    scale=1,
-                    interactive=False,
-                    elem_classes=CLASS_CHECKBOX_LARGE,
-                )
-
-                openai_key = gr.Textbox(
-                    value=state.value.api_keys.get("openai", ""),
+                openai_key = state.value.api_keys.get("openai", "")
+                openai_key_label = "label_verified" if openai_key else "label_verify"
+                openai_key_textbox = gr.Textbox(
+                    value=openai_key,
                     type="password",
                     placeholder="sk-.........",
                     show_label=False,
@@ -344,33 +354,25 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     interactive=True,
                     scale=16,
                 )
-
                 openai_key_verify_button = gr.Button(
-                    value=t("label_verify"),
-                    variant="primary",
+                    value=t(openai_key_label),
+                    variant="primary" if openai_key else "huggingface",
                     scale=2,
                 )
-                tr.reg(openai_key_verify_button, {"value": "label_verify"})
+                tr.reg(openai_key_verify_button, {"value": openai_key_label})
 
             anthropic_label = gr.Label(
                 value="Anthropic API Key",
                 show_label=False,
                 container=False,
             )
-
             with gr.Row(equal_height=True):
-                anthropic_key_checkbox = gr.Checkbox(
-                    value=False,
-                    label="",
-                    show_label=False,
-                    container=False,
-                    scale=1,
-                    interactive=False,
-                    elem_classes=CLASS_CHECKBOX_LARGE,
+                anthropic_key = state.value.api_keys.get("anthropic", "")
+                anthropic_key_label = (
+                    "label_verified" if anthropic_key else "label_verify"
                 )
-
-                anthropic_key = gr.Textbox(
-                    value=state.value.api_keys.get("anthropic", ""),
+                anthropic_key_textbox = gr.Textbox(
+                    value=anthropic_key,
                     type="password",
                     placeholder="sk-ant-api03-.........",
                     show_label=False,
@@ -378,33 +380,23 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     interactive=True,
                     scale=16,
                 )
-
                 anthropic_key_verify_button = gr.Button(
-                    value=t("label_verify"),
-                    variant="primary",
+                    value=t(anthropic_key_label),
+                    variant="primary" if anthropic_key else "huggingface",
                     scale=2,
                 )
-                tr.reg(anthropic_key_verify_button, {"value": "label_verify"})
+                tr.reg(anthropic_key_verify_button, {"value": anthropic_key_label})
 
             gemini_label = gr.Label(
                 value="Gemini API Key",
                 show_label=False,
                 container=False,
             )
-
             with gr.Row(equal_height=True):
-                gemini_key_checkbox = gr.Checkbox(
-                    value=False,
-                    label="",
-                    show_label=False,
-                    container=False,
-                    scale=1,
-                    interactive=False,
-                    elem_classes=CLASS_CHECKBOX_LARGE,
-                )
-
-                gemini_key = gr.Textbox(
-                    value=state.value.api_keys.get("gemini", ""),
+                gemini_key = state.value.api_keys.get("gemini", "")
+                gemini_key_label = "label_verified" if gemini_key else "label_verify"
+                gemini_key_textbox = gr.Textbox(
+                    value=gemini_key,
                     type="password",
                     placeholder="AIzaSy.........",
                     show_label=False,
@@ -412,13 +404,18 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     interactive=True,
                     scale=16,
                 )
-
                 gemini_key_verify_button = gr.Button(
-                    value=t("label_verify"),
-                    variant="primary",
+                    value=t(gemini_key_label),
+                    variant="primary" if gemini_key else "huggingface",
                     scale=2,
                 )
-                tr.reg(gemini_key_verify_button, {"value": "label_verify"})
+                tr.reg(gemini_key_verify_button, {"value": gemini_key_label})
+
+            api_key_interfaces = [
+                ("openai", openai_key_textbox, openai_key_verify_button),
+                ("anthropic", anthropic_key_textbox, anthropic_key_verify_button),
+                ("gemini", gemini_key_textbox, gemini_key_verify_button),
+            ]
 
             result = gr.Textbox(
                 label=t("label_status"),
@@ -426,26 +423,20 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
             )
             tr.reg(result, {"label": "label_status"})
 
-            gr.on(
-                triggers=[openai_key.submit, openai_key_verify_button.click],
-                fn=register_api_key_with("openai"),
-                inputs=[state, openai_key],
-                outputs=[state, result, openai_key_checkbox, model_selector],
-            )
+            for provider, textbox, verify_button in api_key_interfaces:
+                gr.on(
+                    triggers=[textbox.submit, verify_button.click],
+                    fn=register_api_key_with(provider),
+                    inputs=[state, textbox],
+                    outputs=[state, verify_button, result, model_selector],
+                )
 
-            gr.on(
-                triggers=[anthropic_key.submit, anthropic_key_verify_button.click],
-                fn=register_api_key_with("anthropic"),
-                inputs=[state, anthropic_key],
-                outputs=[state, result, anthropic_key_checkbox, model_selector],
-            )
-
-            gr.on(
-                triggers=[gemini_key.submit, gemini_key_verify_button.click],
-                fn=register_api_key_with("gemini"),
-                inputs=[state, gemini_key],
-                outputs=[state, result, gemini_key_checkbox, model_selector],
-            )
+                gr.on(
+                    triggers=[textbox.change],
+                    fn=change_api_key_with(provider),
+                    inputs=[state, verify_button],
+                    outputs=[verify_button],
+                )
 
     interface.load(
         fn=tr.patch,
