@@ -302,7 +302,7 @@ css = """
 footer {visibility: hidden}
 """
 # Hide footer: https://github.com/gradio-app/gradio/issues/6696
-with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
+with gr.Blocks(title=t("app_title"), theme="citrus", css=css) as interface:
     state = gr.State(get_initial_state())
 
     title = gr.Markdown(**{"value": t("app_title")})
