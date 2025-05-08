@@ -462,6 +462,7 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     outputs=[state, verify_button],
                 )
 
+    # Known issue: Textbox values that are not specified are also reset during redraw
     interface.load(
         fn=translate_components,
         inputs=[state],
