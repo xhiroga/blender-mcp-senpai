@@ -115,12 +115,9 @@ def generate_blender_manifest():
         tomlkit.dump(manifest, f)
 
 
-def build():
+def build(blender_exe: str):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    # On macOS or WSL, bpy.app.binary_path is empty.
-    blender_exe = os.environ.get("BLENDER_EXE") or bpy.app.binary_path
-    print(f"{blender_exe=}")
     subprocess.run(
         [
             blender_exe,
@@ -137,8 +134,7 @@ def build():
     )
 
 
-def index_json():
-    blender_exe = os.environ.get("BLENDER_EXE") or bpy.app.binary_path
+def index_json(blender_exe: str):
     print(f"{blender_exe=}")
     subprocess.run(
         [
@@ -174,6 +170,11 @@ def deploy_json():
 
 
 def main():
+    # On macOS or WSL, bpy.app.binary_path is empty.
+    blender_exe = os.environ.get("BLENDER_EXE") or bpy.app.binary_path
+    if not blender_exe:
+        raise RuntimeError("Blender executable path is not set")
+
     clean()
 
     for platform in platforms:
@@ -181,9 +182,9 @@ def main():
 
     generate_blender_manifest()
 
-    build()
+    build(blender_exe)
 
-    index_json()
+    index_json(blender_exe)
 
     deploy_json()
 
