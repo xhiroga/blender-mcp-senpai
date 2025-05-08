@@ -50,6 +50,12 @@ class State:
     current_model: ModelConfig
     current_conversation_id: str
     current_lang: Lang
+    i18n: dict[str, dict[str, str]]
+
+
+# Gradio's State needs to be serializable, which means it cannot contain Components internally
+# Therefore, instead of storing the Component itself, we store the Component's ID and its mapping
+i18nc: list[gr.Component] = []
 
 
 # region Helper Functions
@@ -69,6 +75,7 @@ def get_initial_state() -> State:
         current_model=enabled_models[0],
         current_lang="en",
         current_conversation_id=str(uuid.uuid4()),
+        i18n={},
     )
 
 
@@ -91,6 +98,11 @@ def masked(state: State) -> State:
 # When updating state, we use `replace()` for the following reasons:
 # 1. Unlike applying differences to a Component, the values passed to outputs are replaced, even if they are dictionaries.
 # 2. Therefore, it is better to create a patch instance that updates the existing State values, but updating properties would update the original instance.
+
+# In gradio 4.x and later, do not use `.update()` when updating components. Instead, you can return the components themselves.
+# Components are treated like patches. They are not simple replacements.
+# https://www.gradio.app/guides/blocks-and-event-listeners#updating-component-configurations
+
 
 ComponentValue: TypeAlias = Any
 HandlerOutputs: TypeAlias = tuple[Union[ComponentValue, gr.Component]]
@@ -237,14 +249,13 @@ def update_current_model(state: State, model_json: str, _request: gr.Request) ->
     )
 
 
-class Translator:
-    def __init__(self):
-        self.originals: list[tuple[gr.Component, dict[str, str]]] = []
+def translate_components(
+    state: State, request: gr.Request
+) -> tuple[State, *tuple[gr.Component]]:
+    # Since some components like gr.Tab cannot be used as inputs, components must be passed through global variables rather than as arguments
+    global i18nc
 
-    def reg(self, component: gr.Component, mapping: dict[str, str]):
-        self.originals.append((component, mapping))
-
-    def _get_lang(self, request: gr.Request) -> Lang:
+    def _get_lang(request: gr.Request) -> Lang:
         accept_lang = request.headers.get("Accept-Language", "en").split(",")[0].lower()
         lang_map = {
             "ja": "ja",
@@ -257,33 +268,25 @@ class Translator:
         }
         return lang_map.get(accept_lang[:2], "en")
 
-    def patch(
-        self, state: State, request: gr.Request
-    ) -> tuple[State, *tuple[gr.Component]]:
-        """
-        In gradio 4.x and later, do not use `.update()` when updating components. Instead, you can return the components themselves.
-        Components are treated like patches. They are not simple replacements.
-        https://www.gradio.app/guides/blocks-and-event-listeners#updating-component-configurations
-        """
-        lang = self._get_lang(request)
-        new_state = replace(state, current_lang=lang)
+    lang = _get_lang(request)
+    new_state = replace(state, current_lang=lang)
 
-        patches = []
-        for component, mapping in self.originals:
-            translated = {k: t(v, lang) for k, v in mapping.items()}
-            # The Textbox specified in output cannot be edited unless interactive = True is explicitly set.
-            # https://www.gradio.app/guides/blocks-and-event-listeners#event-listeners-and-interactivity
-            # Incidentally, using `hasattr(component, "interactive")` to determine this is inappropriate.
-            # There are components that have interactive as a property but do not accept it as an argument.
-            # Furthermore, even if a text box is editable on the UI, it will internally hold None if interactive is not specified when instantiated.
-            # And if None is specified as an argument, it will become uneditable.
-            if isinstance(component, gr.Textbox):
-                translated["interactive"] = component.interactive
-            patches.append(component.__class__(**translated))
-        return new_state, *patches
+    patched = []
+    for component in i18nc:
+        for id, mapping in state.i18n.items():
+            if id == component._id:
+                translated = {k: t(v, lang) for k, v in mapping.items()}
+                # The Textbox specified in output cannot be edited unless interactive = True is explicitly set.
+                # https://www.gradio.app/guides/blocks-and-event-listeners#event-listeners-and-interactivity
+                # Incidentally, using `hasattr(component, "interactive")` to determine this is inappropriate.
+                # There are components that have interactive as a property but do not accept it as an argument.
+                # Furthermore, even if a text box is editable on the UI, it will internally hold None if interactive is not specified when instantiated.
+                # And if None is specified as an argument, it will become uneditable.
+                if isinstance(component, gr.Textbox):
+                    translated["interactive"] = component.interactive
+                patched.append(component.__class__(**translated))
 
-    def components(self):
-        return [component for component, _ in self.originals]
+    return new_state, *patched
 
 
 # endregion
@@ -292,17 +295,17 @@ css = """
 footer {visibility: hidden}
 """
 # Hide footer: https://github.com/gradio-app/gradio/issues/6696
-
 with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
     state = gr.State(get_initial_state())
 
-    tr = Translator()
-    tr.reg(gr.Markdown(**{"value": "app_title"}), {"value": "app_title"})
+    title = gr.Markdown(**{"value": t("app_title")})
+    state.value.i18n[title._id] = {"value": "app_title"}
+    i18nc.append(title)
 
     with gr.Tabs():
         with gr.TabItem(t("tab_chat")) as tab:
-            tr.reg(tab, {"label": "tab_chat"})
-
+            state.value.i18n[tab._id] = {"label": "tab_chat"}
+            i18nc.append(tab)
             model_selector = gr.Dropdown(
                 choices=[
                     (f"{model['model']} ({model['provider']})", json.dumps(model))
@@ -312,7 +315,8 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                 label=t("label_model"),
                 container=False,
             )
-            tr.reg(model_selector, {"label": "label_model"})
+            state.value.i18n[model_selector._id] = {"label": "label_model"}
+            i18nc.append(model_selector)
 
             model_selector.change(
                 fn=update_current_model,
@@ -328,7 +332,8 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
             chat_interface.chatbot.min_height = "60vh"
 
         with gr.Tab(t("tab_api")) as tab:
-            tr.reg(tab, {"label": "tab_api"})
+            state.value.i18n[tab._id] = {"label": "tab_api"}
+            i18nc.append(tab)
 
             openai_label = gr.Label(
                 value="OpenAI API Key",
@@ -352,7 +357,10 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     variant="primary" if openai_key else "huggingface",
                     scale=1,
                 )
-                tr.reg(openai_key_verify_button, {"value": openai_key_label})
+                state.value.i18n[openai_key_verify_button._id] = {
+                    "value": "label_verified"
+                }
+                i18nc.append(openai_key_verify_button)
 
             anthropic_label = gr.Label(
                 value="Anthropic API Key",
@@ -378,7 +386,10 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     variant="primary" if anthropic_key else "huggingface",
                     scale=1,
                 )
-                tr.reg(anthropic_key_verify_button, {"value": anthropic_key_label})
+                state.value.i18n[anthropic_key_verify_button._id] = {
+                    "value": anthropic_key_label
+                }
+                i18nc.append(anthropic_key_verify_button)
 
             gemini_label = gr.Label(
                 value="Gemini API Key",
@@ -402,7 +413,10 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     variant="primary" if gemini_key else "huggingface",
                     scale=1,
                 )
-                tr.reg(gemini_key_verify_button, {"value": gemini_key_label})
+                state.value.i18n[gemini_key_verify_button._id] = {
+                    "value": gemini_key_label
+                }
+                i18nc.append(gemini_key_verify_button)
 
             api_key_interfaces = [
                 ("openai", openai_key_textbox, openai_key_verify_button),
@@ -414,7 +428,8 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                 label=t("label_status"),
                 interactive=False,
             )
-            tr.reg(result, {"label": "label_status"})
+            state.value.i18n[result._id] = {"label": "label_status"}
+            i18nc.append(result)
 
             for provider, textbox, verify_button in api_key_interfaces:
                 gr.on(
@@ -432,7 +447,7 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                 )
 
     interface.load(
-        fn=tr.patch,
+        fn=translate_components,
         inputs=[state],
-        outputs=[state, *tr.components()],
+        outputs=[state, *i18nc],
     )
