@@ -154,7 +154,8 @@ async def chat_function(
 chat_function_alias: Handler = chat_function
 
 
-def register_api_key_with(provider: Provider) -> Handler:
+# Since Gradio event listeners cannot receive Component itself as an argument, passing it through a higher-order function.
+def register_api_key_with(provider: Provider, button: gr.Button) -> Handler:
     def register_api_key(
         state: State, api_key: str, _request: gr.Request
     ) -> tuple[State, gr.Button, str, gr.Dropdown]:
@@ -184,15 +185,19 @@ def register_api_key_with(provider: Provider) -> Handler:
                 else enabled_models[0]
             )
 
+            new_button_label = "label_verified"
+            new_i18n = state.i18n.copy()
+            new_i18n[button._id] = {"value": new_button_label}
             new_state = replace(
                 state,
                 api_keys=api_keys,
                 enabled_models=enabled_models,
                 current_model=current_model,
+                i18n=new_i18n,
             )
 
-            button = gr.Button(
-                value=t("label_verified", state.current_lang),
+            new_button = gr.Button(
+                value=t(new_button_label, state.current_lang),
                 variant="primary",
             )
 
@@ -206,29 +211,40 @@ def register_api_key_with(provider: Provider) -> Handler:
                 value=json.dumps(current_model),
             )
 
-            # AttributeError: 'Dropdown' object has no attribute 'value'
             logger.info(
-                f"{masked(new_state)=}, {button=}, {result=},{model_selector.change=}"
+                f"{masked(new_state)=}, {new_button=}, {result=},{model_selector.change=}"
             )
-            return new_state, button, result, model_selector
+            return new_state, new_button, result, model_selector
 
         except Exception as e:
             logger.exception(e)
-            button = gr.Button(
-                value=t("label_verify_error", state.current_lang),
+            new_button_label = "label_verify_error"
+            new_i18n = state.i18n.copy()
+            new_i18n[button._id] = {"value": new_button_label}
+            new_state = replace(
+                state,
+                i18n=new_i18n,
+            )
+            new_button = gr.Button(
+                value=t(new_button_label, state.current_lang),
                 variant="stop",
             )
-            return gr.skip(), button, f"NG: {e}", gr.skip()
+            return new_state, new_button, f"NG: {e}", gr.skip()
 
     return register_api_key
 
 
-def change_api_key_with(provider: Provider) -> Handler:
-    def change_api_key(
-        state: State, button: gr.Button, _request: gr.Request
-    ) -> tuple[gr.Button]:
-        return gr.Button(
-            value=t("label_verify", state.current_lang),
+def change_api_key_with(provider: Provider, button: gr.Button) -> Handler:
+    def change_api_key(state: State, _request: gr.Request) -> tuple[State, gr.Button]:
+        new_button_label = "label_verify"
+        new_i18n = state.i18n.copy()
+        new_i18n[button._id] = {"value": new_button_label}
+        new_state = replace(
+            state,
+            i18n=new_i18n,
+        )
+        return new_state, gr.Button(
+            value=t(new_button_label, state.current_lang),
             variant="huggingface",
         )
 
@@ -358,7 +374,7 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     scale=1,
                 )
                 state.value.i18n[openai_key_verify_button._id] = {
-                    "value": "label_verified"
+                    "value": openai_key_label
                 }
                 i18nc.append(openai_key_verify_button)
 
@@ -434,16 +450,16 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
             for provider, textbox, verify_button in api_key_interfaces:
                 gr.on(
                     triggers=[textbox.submit, verify_button.click],
-                    fn=register_api_key_with(provider),
+                    fn=register_api_key_with(provider, verify_button),
                     inputs=[state, textbox],
                     outputs=[state, verify_button, result, model_selector],
                 )
 
                 gr.on(
                     triggers=[textbox.change],
-                    fn=change_api_key_with(provider),
-                    inputs=[state, verify_button],
-                    outputs=[verify_button],
+                    fn=change_api_key_with(provider, verify_button),
+                    inputs=[state],
+                    outputs=[state, verify_button],
                 )
 
     interface.load(
