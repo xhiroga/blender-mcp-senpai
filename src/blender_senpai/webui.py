@@ -288,15 +288,8 @@ class Translator:
 
 # endregion
 
-CLASS_CHECKBOX_LARGE = "checkbox-large"
-ROW_HEIGHT = 40
-css = f"""
-.{CLASS_CHECKBOX_LARGE} input[type='checkbox'] {{
-    width: {ROW_HEIGHT}px;
-    height: {ROW_HEIGHT}px;
-    border: 2px solid var(--neutral-300, #d1d5db);
-}}
-footer {{visibility: hidden}}
+css = """
+footer {visibility: hidden}
 """
 # Hide footer: https://github.com/gradio-app/gradio/issues/6696
 
@@ -352,12 +345,12 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     show_label=False,
                     container=False,
                     interactive=True,
-                    scale=16,
+                    scale=8,
                 )
                 openai_key_verify_button = gr.Button(
                     value=t(openai_key_label),
                     variant="primary" if openai_key else "huggingface",
-                    scale=2,
+                    scale=1,
                 )
                 tr.reg(openai_key_verify_button, {"value": openai_key_label})
 
@@ -378,12 +371,12 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     show_label=False,
                     container=False,
                     interactive=True,
-                    scale=16,
+                    scale=8,
                 )
                 anthropic_key_verify_button = gr.Button(
                     value=t(anthropic_key_label),
                     variant="primary" if anthropic_key else "huggingface",
-                    scale=2,
+                    scale=1,
                 )
                 tr.reg(anthropic_key_verify_button, {"value": anthropic_key_label})
 
@@ -402,12 +395,12 @@ with gr.Blocks(title=t("app_title"), theme="soft", css=css) as interface:
                     show_label=False,
                     container=False,
                     interactive=True,
-                    scale=16,
+                    scale=8,
                 )
                 gemini_key_verify_button = gr.Button(
                     value=t(gemini_key_label),
                     variant="primary" if gemini_key else "huggingface",
-                    scale=2,
+                    scale=1,
                 )
                 tr.reg(gemini_key_verify_button, {"value": gemini_key_label})
 
