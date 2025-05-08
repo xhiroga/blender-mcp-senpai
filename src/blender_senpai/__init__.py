@@ -31,6 +31,7 @@ class BLENDER_SENPAI_OT_open_server(Operator):
 
     def execute(self, context):
         url = f"http://{server.host}:{server.port}"
+        # Known issue: May not open on Windows...?
         webbrowser.open(url)
         return {"FINISHED"}
 

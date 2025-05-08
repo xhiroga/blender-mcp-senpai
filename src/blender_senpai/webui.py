@@ -268,7 +268,7 @@ def update_current_model(state: State, model_json: str, _request: gr.Request) ->
 def translate_components(
     state: State, request: gr.Request
 ) -> tuple[State, *tuple[gr.Component]]:
-    # Since some components like gr.Tab cannot be used as inputs, components must be passed through global variables rather than as arguments
+    # We want to get the Component's _id, but through arguments we can only get the Component's value. We have no choice but to reference the global variable.
     global i18nc
 
     def _get_lang(request: gr.Request) -> Lang:
