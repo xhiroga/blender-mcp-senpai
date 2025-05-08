@@ -42,6 +42,9 @@ class BLENDER_SENPAI_PT_server(Panel):
     bl_region_type = "UI"
     bl_category = "Blender Senpai"
 
+    extension_version: str
+    extension_commit: str
+
     def draw(self, context):
         layout = self.layout
         layout.operator(
@@ -49,6 +52,9 @@ class BLENDER_SENPAI_PT_server(Panel):
             text=f"Open http://{server.host}:{server.port}",
             icon="URL",
         )
+
+        layout.label(text=f"Version: {self.extension_version}")
+        layout.label(text=f"Commit: {self.extension_commit}")
 
 
 classes = (BLENDER_SENPAI_OT_open_server, BLENDER_SENPAI_PT_server)
@@ -64,8 +70,11 @@ def register():
     configure(mode="extension")
 
     manifest = read_manifest()
+    BLENDER_SENPAI_PT_server.extension_version = manifest.get("version", "unknown")
+    BLENDER_SENPAI_PT_server.extension_commit = manifest.get("commit", "unknown")[:7]
+
     logger.info(
-        f"Hello from extension! Blender :{bpy.app.version_string}, Extension: {manifest.get('version', 'unknown')}, Git commit: {manifest.get('commit', 'unknown')}"
+        f"Hello from extension! Blender :{bpy.app.version_string}, Extension: {BLENDER_SENPAI_PT_server.extension_version}, Git commit: {BLENDER_SENPAI_PT_server.extension_commit}"
     )
 
     for cls in classes:
