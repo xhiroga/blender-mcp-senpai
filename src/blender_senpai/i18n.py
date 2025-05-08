@@ -1,6 +1,7 @@
 from typing import Literal
 
-Lang = Literal["en", "ja", "zh", "de", "fr", "es", "pt", "ru"]
+SUPPORTED_LANGUAGES = ["en", "ja", "zh", "de", "fr", "es", "pt", "ru", "ko"]
+Lang = Literal[tuple(SUPPORTED_LANGUAGES)]  # type: ignore
 
 _TEXTS: dict[Lang, dict[str, str]] = {
     "en": {
@@ -214,6 +215,33 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         "system_prompt": "Вы - ИИ-ассистент, поддерживающий пользователей Blender. Пожалуйста, отвечайте на русском языке.",
         "tutorial": """Выберите модель. Если модель не отображается, зарегистрируйте ваш API-ключ.
         Вы можете получить API-ключ из следующих URL.
+        OpenAI: https://platform.openai.com/api-keys
+        Anthropic: https://console.anthropic.com/settings/keys
+        Gemini: https://aistudio.google.com/apikey
+        """,
+    },
+    "ko": {
+        "app_title": "# Blender Senpai",
+        "app_desc": "Blender와 AI를 위한 협업 도구",
+        "tab_chat": "채팅",
+        "tab_api": "API 설정",
+        "label_model": "모델",
+        "label_api_key": "API 키",
+        "label_verify": "확인",
+        "label_verified": "확인됨",
+        "label_verify_error": "확인 실패",
+        "label_status": "상태",
+        "label_save": "설정 저장",
+        "label_openai_api_key": "OpenAI API 키",
+        "label_anthropic_api_key": "Anthropic API 키",
+        "label_gemini_api_key": "Gemini API 키",
+        "msg_api_key_required": "설정 탭에서 API 키를 설정해 주세요.",
+        "msg_api_key_valid": "✅ API 키가 유효합니다",
+        "msg_api_key_invalid": "❌ 오류: API 키가 유효하지 않습니다",
+        "msg_settings_saved": "설정이 업데이트되었습니다.",
+        "system_prompt": "당신은 Blender 사용자를 지원하는 AI 어시스턴트입니다. 한국어로 답변해 주세요.",
+        "tutorial": """모델을 선택하세요. 모델이 표시되지 않는 경우 API 키를 등록하세요.
+        다음 URL에서 API 키를 얻을 수 있습니다.
         OpenAI: https://platform.openai.com/api-keys
         Anthropic: https://console.anthropic.com/settings/keys
         Gemini: https://aistudio.google.com/apikey

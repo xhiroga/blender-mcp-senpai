@@ -7,7 +7,7 @@ from typing import Any, Callable, Literal, TypeAlias, TypedDict, Union
 import gradio as gr
 import litellm
 
-from .i18n import Lang, t
+from .i18n import SUPPORTED_LANGUAGES, Lang, t
 from .llm import completion
 from .repositories.api_key_repository import ApiKeyRepository
 from .repositories.history_repository import HistoryRepository
@@ -273,16 +273,7 @@ def translate_components(
 
     def _get_lang(request: gr.Request) -> Lang:
         accept_lang = request.headers.get("Accept-Language", "en").split(",")[0].lower()
-        lang_map = {
-            "ja": "ja",
-            "zh": "zh",
-            "de": "de",
-            "fr": "fr",
-            "es": "es",
-            "pt": "pt",
-            "ru": "ru",
-        }
-        return lang_map.get(accept_lang[:2], "en")
+        return accept_lang[:2] if accept_lang[:2] in SUPPORTED_LANGUAGES else "en"
 
     lang = _get_lang(request)
     new_state = replace(state, current_lang=lang)
