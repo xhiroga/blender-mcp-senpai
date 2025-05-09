@@ -1,14 +1,14 @@
-name: Action
+name: Test
 
 on:
   push:
-    branches: []
+    branches: [main]
   pull_request:
-    branches: []
+    branches: [main]
   workflow_dispatch:
 
 jobs:
-  build:
+  test:
     name: python
     runs-on: ubuntu-latest
     env:
@@ -16,9 +16,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
       - name: Install uv
-        uses: astral-sh/setup-uv@5
+        uses: astral-sh/setup-uv@6
         with:
           enable-cache: true
           cache-local-path: /tmp/.uv-cache
@@ -32,6 +34,5 @@ jobs:
             uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
             uv-${{ runner.os }}
 
-      - name: Run main.py in rag directory
-        working-directory: rag
-        run: uv run main.py
+      - name: Run test
+        run: uv run python -m pytest
