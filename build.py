@@ -1,3 +1,4 @@
+# Inspired by https://github.com/BradyAJohnston/MolecularNodes/blob/main/build.py
 import json
 import os
 import subprocess

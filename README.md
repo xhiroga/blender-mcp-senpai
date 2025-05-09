@@ -6,7 +6,18 @@ Your senpai (先輩, mentor) of Blener.
 
 ## About
 
-TODO...
+Get instant answers to your Blender file questions from ChatGPT/Claude/Gemini/...!
+
+## Features
+
+✅ Ask questions about your currently open Blender file to ChatGPT/Claude/Gemini/...!  
+✅ No complicated MCP server setup required! Just a Blender extension  
+✅ Detailed explanations of Blender concepts with GIF animations
+✅ Multi-language support
+🔁 Save chat history locally  
+🔁 Automatically share workspace state with AI through images
+🔁 Automatically reference version-specific Blender documentation and FAQs  
+🔁 Integration with Asset Store
 
 ## Installation
 
@@ -70,30 +81,5 @@ uv run python -m pytest
 uv run --env-file .env build.py
 # Install extension to Blender and check if it works.
 git add docs/extensions/index.json pyproject.toml uv.lock
-VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
-git commit -m "feat: v$VERSION"
-git tag v$VERSION
-git push
-git push --tags
-gh release create v$VERSION --generate-notes
-echo "Upload zip file to https://github.com/xhiroga/blender-mcp-senpai/releases/edit/v$VERSION"
+./scripts/release.sh
 ```
-
-## Features
-
-- [x] Indexing Blender documents
-- [x] Search documents by DuckDB-VSS
-- [ ] Use RAG through MCP
-- [x] Install MCP server by Repository
-- [ ] List resources through MCP
-- [ ] Describe Blender version through MCP
-- [ ] Send Blender screenshot through MCP
-- [ ] Embed logo
-- [ ] Store chat history and API keys securely
-- [ ] Refactor: remove unused texts from i18n
-
-## Inspiration
-
-- https://github.com/ahujasid/blender-mcp
-- https://github.com/AIGODLIKE/GenesisCore
-- https://github.com/BradyAJohnston/MolecularNodes
