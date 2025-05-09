@@ -14,10 +14,10 @@ Get instant answers to your Blender file questions from ChatGPT/Claude/Gemini/..
 ✅ No complicated MCP server setup required! Just a Blender extension  
 ✅ Detailed explanations of Blender concepts with GIF animations
 ✅ Multi-language support
-🔁 Save chat history locally  
-🔁 Automatically share workspace state with AI through images
-🔁 Automatically reference version-specific Blender documentation and FAQs  
-🔁 Integration with Asset Store
+🚧 Save chat history locally  
+🚧 Automatically share workspace state with AI through images
+🚧 Automatically reference version-specific Blender documentation and FAQs  
+🚧 Integration with Asset Store
 
 ## Installation
 
