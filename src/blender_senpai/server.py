@@ -13,10 +13,11 @@ logger = getLogger(__name__)
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, locale: str):
         self.server = None
         self.host = "127.0.0.1"
         self.port = 13180
+        self.locale = locale
 
     @staticmethod
     def _get_port(default_port=None):
@@ -46,7 +47,7 @@ class Server:
         self.port = self._get_port(self.port)
 
         app = get_sse_app()
-        gradio_app = gr.mount_gradio_app(app, interface, path="")
+        gradio_app = gr.mount_gradio_app(app, interface(self.locale), path="")
 
         logger.info(
             f"Starting FastAPI server with Gradio UI and SSE endpoint on {self.host}:{self.port}"
@@ -71,12 +72,14 @@ class Server:
             self.server.force_exit = True
 
 
-server = Server()
-
-
 if __name__ == "__main__":
+    import os
+
+    os.environ["DEBUG"] = "1"
     configure(mode="standalone")
 
+    locale = "en_JP"
+    server = Server(locale)
     try:
         server.run()
     finally:

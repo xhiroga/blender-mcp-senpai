@@ -1,15 +1,52 @@
+import base64
 import inspect
 import json
+import os
 from logging import getLogger
-from typing import Any, AsyncGenerator, TypedDict
+from typing import Any, AsyncGenerator, Literal, TypedDict
 
 import litellm
 
 from .i18n import Lang
 from .system_prompt import SYSTEM_PROMPT
 from .tools import tool_functions, tools
+from .types.api_key import ApiKey
+
+# To Update models, use search-available models like o4-mini.
+# INSTRUCTION: When updating the model, refer to the URL.
+Provider = Literal["openai", "gemini", "anthropic", "tutorial"]
+ModelConfig = TypedDict("model", {"provider": Provider, "model": str, "default": bool})
+model_configs: list[ModelConfig] = [
+    # https://docs.cursor.com/settings/models
+    # https://docs.litellm.ai/docs/providers/openai
+    {"provider": "openai", "model": "gpt-4o", "default": False},
+    {"provider": "openai", "model": "gpt-4o-mini", "default": True},
+    {"provider": "openai", "model": "gpt-4.1", "default": False},
+    {"provider": "openai", "model": "o1", "default": False},
+    {"provider": "openai", "model": "o1-mini", "default": False},
+    {"provider": "openai", "model": "o3", "default": False},
+    {"provider": "openai", "model": "o3-mini", "default": False},
+    {"provider": "openai", "model": "o4-mini", "default": False},
+    # https://docs.anthropic.com/en/docs/about-claude/models/all-models
+    {"provider": "anthropic", "model": "claude-3-7-sonnet-20250219", "default": False},
+    {"provider": "anthropic", "model": "claude-3-5-haiku-20241022", "default": True},
+    # https://docs.litellm.ai/docs/providers/gemini
+    # https://ai.google.dev/gemini-api/docs/models
+    {"provider": "gemini", "model": "gemini-2.5-flash-preview-04-17", "default": True},
+    {"provider": "gemini", "model": "gemini-2.5-pro-preview-05-06", "default": False},
+    {"provider": "gemini", "model": "gemini-2.0-flash", "default": False},
+    {"provider": "gemini", "model": "gemini-2.0-flash-lite", "default": False},
+    # Debug provider to show the tutorial
+    {"provider": "tutorial", "model": "Tutorial", "default": True},
+]
+
 
 logger = getLogger(__name__)
+
+
+class GradioInputMessage(TypedDict):
+    text: str  # Can be empty string but never None
+    files: list[str]
 
 
 class GradioHistoryMessage(TypedDict):
@@ -25,8 +62,9 @@ class OpenAIChatCompletionMessages(TypedDict):
     # TODO: Tools, etc... from https://platform.openai.com/docs/api-reference/chat
 
 
-def _build_litellm_messages_from_gradio_history(
-    user_message: str,
+def _build_messages(
+    model: str,
+    user_message: GradioHistoryMessage,
     history: list[GradioHistoryMessage],
     lang: Lang = "en",
 ) -> list[OpenAIChatCompletionMessages]:
@@ -44,45 +82,52 @@ def _build_litellm_messages_from_gradio_history(
     for message in history:
         messages.append({"role": message["role"], "content": message["content"]})
 
-    messages.append({"role": "user", "content": user_message})
+    content = []
+    if user_message["text"]:
+        content.append({"type": "text", "text": user_message["text"]})
+    if user_message["files"]:
+        for file in user_message["files"]:
+            with open(file, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode("utf-8")
+                content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": f"data:image/jpeg;base64,{base64_image}",
+                    }
+                )
+
+    messages.append({"role": "user", "content": content})
     return messages
 
 
 async def completion_stream(
     model: str,
-    api_key: str,
-    message: str,
+    api_key: ApiKey,
+    message: GradioInputMessage,
     history: list[GradioHistoryMessage],
     lang: Lang,
 ) -> AsyncGenerator[str, None]:
-    """Yield the assistant's response incrementally using OpenAI compatible streaming.
+    logger.info(f"{model=} {message=} {history[-3:]=} {lang=}")
 
-    Compared to :pyfunc:`completion`, this function sets ``stream=True`` when
-    calling the LLM and immediately yields any new ``delta.content`` tokens.
+    if os.environ.get("DEBUG"):
+        litellm._turn_on_debug()
 
-    * If the model decides to invoke a *tool*, the first pass of streaming will
-      end with ``finish_reason == 'tool_calls'``. Once all tool-call deltas have
-      been reconstructed, the tool is executed and its result appended to the
-      conversation. A second, non-tool completion is then requested – this one
-      is also streamed and its tokens are forwarded to the caller.
-    * When no tool call is requested, tokens are simply forwarded as-is.
-    """
-
-    logger.info(f"[stream] {model=} {message[:30]=} {history[-3:]=} {lang=}")
-
-    messages = _build_litellm_messages_from_gradio_history(message, history, lang)
+    messages = _build_messages(model, message, history, lang)
 
     # ------------------------------------------------------------------
     # 1st completion – let the model decide whether it wants to call a tool
     # ------------------------------------------------------------------
-    first_stream = await litellm.acompletion(
-        model=model,
-        api_key=api_key,
-        messages=messages,
-        tools=tools,
-        tool_choice="auto",
-        stream=True,
-    )
+    params = {
+        "model": model,
+        "messages": messages,
+        "stream": True,
+        "tools": tools,
+        "tool_choice": "auto",
+    }
+    if litellm.supports_reasoning(model):
+        params["reasoning_effort"] = "low"
+    logger.info(f"litellm.acompletion: {params=}")
+    first_stream = await litellm.acompletion(**params, api_key=api_key.reveal())
 
     # We reconstruct the full assistant message while streaming
     collected_content: list[str] = []
