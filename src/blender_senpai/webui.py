@@ -2,13 +2,13 @@ import json
 import uuid
 from dataclasses import dataclass, replace
 from logging import getLogger
-from typing import Any, Callable, Literal, TypeAlias, TypedDict, Union
+from typing import Any, AsyncGenerator, Callable, Literal, TypeAlias, TypedDict, Union
 
 import gradio as gr
 import litellm
 
 from .i18n import SUPPORTED_LANGUAGES, Lang, t
-from .llm import completion
+from .llm import completion_stream
 from .repositories.api_key_repository import ApiKeyRepository
 from .repositories.history_repository import HistoryRepository
 
@@ -114,7 +114,7 @@ async def chat_function(
     history: list[tuple[str, str]],
     state: State,
     request: gr.Request,
-):
+) -> "AsyncGenerator[str, None]":
     """As described in `mainthreadify()`, the results of `bpy` update operations are obtained by waiting in an asynchronous loop.
     In Gradio, when a callback is a synchronous function, Starlette internally offloads the function to a worker thread.
     `anyio.to_thread.run_sync(fn, *args, **kwargs)  # Code is for illustration`
@@ -129,25 +129,36 @@ async def chat_function(
     provider = state.current_model["provider"]
 
     if provider == "tutorial":
-        return t("tutorial", lang)
+        tutorial_msg = t("tutorial", lang)
+        HistoryRepository.create(conversation_id, "assistant", tutorial_msg)
+        yield tutorial_msg
+        return
 
     api_key = state.api_keys.get(provider)
     if not api_key:
-        return t("msg_api_key_required", lang)
+        error_msg = t("msg_api_key_required", lang)
+        HistoryRepository.create(conversation_id, "assistant", error_msg)
+        yield error_msg
+        return
 
     model = f"{provider}/{state.current_model['model']}"
     logger.info(f"{model=}")
-    assistant_message = await completion(
+    tokens: list[str] = []
+    async for token in completion_stream(
         model=model,
         api_key=api_key,
         message=message,
         history=history,
         lang=lang,
-    )
+    ):
+        tokens.append(token)
+        partial = "".join(tokens)
+        yield partial
+
+    assistant_message = "".join(tokens)
     HistoryRepository.create(conversation_id, "assistant", assistant_message)
 
     logger.info(f"{assistant_message=}")
-    return assistant_message
 
 
 # Alias with proper Handler type so static analysis passes
