@@ -8,10 +8,12 @@ import bpy
 from bpy.types import Operator, Panel
 
 from .log_config import configure
-from .server import server
+from .server import Server
 from .utils import execute_queued_functions
 
 logger = getLogger(__name__)
+
+server: Server | None = None
 
 
 def read_manifest() -> dict:
@@ -82,12 +84,18 @@ def register():
         bpy.utils.register_class(cls)
 
     bpy.app.timers.register(execute_queued_functions)
+    global server
+    locale = bpy.app.translations.locale
+    server = Server(locale)
     threading.Thread(target=server.run).start()
 
 
 def unregister():
     logger.info("Goodbye from extension!")
-    server.stop()
+    global server
+    if server:
+        server.stop()
+        server = None
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
