@@ -1,7 +1,6 @@
 import base64
 import inspect
 import json
-import os
 from logging import getLogger
 from typing import Any, AsyncGenerator, Literal, TypedDict
 
@@ -80,7 +79,28 @@ def _build_messages(
     ]
 
     for message in history:
-        messages.append({"role": message["role"], "content": message["content"]})
+        updated = {"role": message["role"]}
+        if isinstance(message["content"], str):
+            updated["content"] = message["content"]
+        elif isinstance(message["content"], tuple):
+            updated["content"] = []
+            for content in message["content"]:
+                if isinstance(content, str) and content.startswith("/"):
+                    base64_image = base64.b64encode(open(content, "rb").read()).decode(
+                        "utf-8"
+                    )
+                    updated["content"].append(
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            },
+                        }
+                    )
+                else:
+                    pass
+
+        messages.append(updated)
 
     content = []
     if user_message["text"]:
@@ -109,8 +129,8 @@ async def completion_stream(
 ) -> AsyncGenerator[str, None]:
     logger.info(f"{model=} {api_key=} {message=} {history[-3:]=} {lang=}")
 
-    if os.environ.get("DEBUG"):
-        litellm._turn_on_debug()
+    # if os.environ.get("DEBUG"):
+    #     litellm._turn_on_debug()
 
     messages = _build_messages(model, message, history, lang)
 
