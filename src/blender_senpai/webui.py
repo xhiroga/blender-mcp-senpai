@@ -137,10 +137,6 @@ async def chat_function(
     logger.info(f"{assistant_message=}")
 
 
-# Alias with proper Handler type so static analysis passes
-chat_function_alias: Handler = chat_function
-
-
 # Since Gradio event listeners cannot receive Component itself as an argument, passing it through a higher-order function.
 def register_api_key_with(
     provider: Provider, textbox: gr.Textbox, button: gr.Button
@@ -257,7 +253,7 @@ def interface(locale: str):
             )
         )
 
-        gr.Markdown(**{"value": t("app_title", lang)})
+        gr.Markdown(**{"value": f"# {t('app_title', lang)}"})
 
         with gr.Tabs():
             with gr.TabItem(t("tab_chat", lang)):
@@ -278,7 +274,7 @@ def interface(locale: str):
                 )
 
                 chat_interface = gr.ChatInterface(
-                    fn=chat_function_alias,
+                    fn=chat_function,
                     multimodal=True,
                     type="messages",
                     additional_inputs=[state],
