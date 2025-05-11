@@ -5,7 +5,7 @@ Lang = Literal[tuple(SUPPORTED_LANGUAGES)]  # type: ignore
 
 _TEXTS: dict[Lang, dict[str, str]] = {
     "en": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Collaboration tool for Blender and AI",
         "tab_chat": "Chat",
         "tab_api": "API Settings",
@@ -32,7 +32,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "ja": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "BlenderとAIのコラボレーションツール",
         "tab_chat": "チャット",
         "tab_api": "API設定",
@@ -59,7 +59,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "zh": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Blender与AI协作工具",
         "tab_chat": "聊天",
         "tab_api": "API设置",
@@ -86,7 +86,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "de": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Kollaborationstool für Blender und KI",
         "tab_chat": "Chat",
         "tab_api": "API-Einstellungen",
@@ -113,7 +113,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "fr": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Outil de collaboration pour Blender et l'IA",
         "tab_chat": "Chat",
         "tab_api": "Paramètres API",
@@ -140,7 +140,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "es": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Herramienta de colaboración para Blender e IA",
         "tab_chat": "Chat",
         "tab_api": "Configuración API",
@@ -167,7 +167,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "pt": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Ferramenta de colaboração para Blender e IA",
         "tab_chat": "Chat",
         "tab_api": "Configurações API",
@@ -194,7 +194,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "ru": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Инструмент для совместной работы Blender и ИИ",
         "tab_chat": "Чат",
         "tab_api": "Настройки API",
@@ -221,7 +221,7 @@ _TEXTS: dict[Lang, dict[str, str]] = {
         """,
     },
     "ko": {
-        "app_title": "# Blender Senpai",
+        "app_title": "Blender Senpai",
         "app_desc": "Blender와 AI를 위한 협업 도구",
         "tab_chat": "채팅",
         "tab_api": "API 설정",

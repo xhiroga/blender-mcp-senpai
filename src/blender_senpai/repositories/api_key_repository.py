@@ -1,14 +1,67 @@
+from __future__ import annotations
+
+import json
+from logging import getLogger
+
+import keyring  # type: ignore
+
+from ..types.api_key import ApiKey
+
+logger = getLogger(__name__)
+
+
 class ApiKeyRepository:
-    on_memory_api_keys = {}
+    _SERVICE_NAME: str = "blender_senpai"
+    _ACCOUNT_NAME: str = "api_keys"  # Single record in Keychain
+
+    # In-memory cache. Filled lazily after first access.
+    _cache: dict[str, ApiKey] = {}
+    _loaded: bool = False
 
     @classmethod
-    def save(cls, provider: str, api_key: str):
-        cls.on_memory_api_keys[provider] = api_key
+    def _load_all(cls) -> None:
+        logger.debug(f"{cls._loaded=}, {cls._cache=}")
+        if cls._loaded:
+            return
+
+        raw = keyring.get_password(cls._SERVICE_NAME, cls._ACCOUNT_NAME)
+        logger.debug(f"{raw is not None=}")
+
+        if raw:
+            try:
+                data: dict[str, str] = json.loads(raw)
+                cls._cache = {k: ApiKey(v) for k, v in data.items()}
+            except json.JSONDecodeError:
+                logger.warning("JSON decode error")
+                cls._cache = {}
+
+        cls._loaded = True
 
     @classmethod
-    def get(cls, provider: str) -> str | None:
-        return cls.on_memory_api_keys.get(provider)
+    def _persist_all(cls) -> None:
+        logger.debug(f"{cls._cache=}")
+        payload = json.dumps({k: v.reveal() for k, v in cls._cache.items()})
+        keyring.set_password(cls._SERVICE_NAME, cls._ACCOUNT_NAME, payload)
 
     @classmethod
-    def list(cls) -> dict[str, str]:
-        return cls.on_memory_api_keys
+    def save(cls, provider: str, api_key: ApiKey) -> None:
+        logger.info(f"{provider=}, {api_key=}")
+
+        cls._load_all()
+
+        cls._cache[provider] = api_key
+        cls._persist_all()
+
+    @classmethod
+    def get(cls, provider: str) -> ApiKey | None:
+        cls._load_all()
+
+        result = cls._cache.get(provider)
+        logger.info(f"{provider=}, {result is not None=}")
+        return result
+
+    @classmethod
+    def list(cls) -> dict[str, ApiKey]:
+        cls._load_all()
+
+        return dict(cls._cache)

@@ -20,7 +20,7 @@
   - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:${PORT}/sse`
   - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed TWICE
   - [ ] `get_objects` successfully executed
-- [ ] `uv run --env-file .env build.py` successfully built
+- [ ] `uv run --env-file .env build.py` successfully built and install to Blender
   - [ ] `curl -N http://localhost:${PORT}/sse`
   - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:${PORT}/sse`
   - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed TWICE
