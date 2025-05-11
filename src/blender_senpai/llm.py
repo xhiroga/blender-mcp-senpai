@@ -107,7 +107,7 @@ async def completion_stream(
     history: list[GradioHistoryMessage],
     lang: Lang,
 ) -> AsyncGenerator[str, None]:
-    logger.info(f"{model=} {message=} {history[-3:]=} {lang=}")
+    logger.info(f"{model=} {api_key=} {message=} {history[-3:]=} {lang=}")
 
     if os.environ.get("DEBUG"):
         litellm._turn_on_debug()
@@ -117,7 +117,7 @@ async def completion_stream(
     # ------------------------------------------------------------------
     # 1st completion – let the model decide whether it wants to call a tool
     # ------------------------------------------------------------------
-    params = {
+    first_params = {
         "model": model,
         "messages": messages,
         "stream": True,
@@ -125,9 +125,11 @@ async def completion_stream(
         "tool_choice": "auto",
     }
     if litellm.supports_reasoning(model):
-        params["reasoning_effort"] = "low"
-    logger.info(f"litellm.acompletion: {params=}")
-    first_stream = await litellm.acompletion(**params, api_key=api_key.reveal())
+        first_params["reasoning_effort"] = "low"
+
+    logger.info(f"litellm.acompletion: {first_params=}")
+
+    first_stream = await litellm.acompletion(**first_params, api_key=api_key.reveal())
 
     # We reconstruct the full assistant message while streaming
     collected_content: list[str] = []
@@ -210,17 +212,17 @@ async def completion_stream(
             }
         )
 
-    # ------------------------------------------------------------------
-    # 2nd completion – assistant responds after the tool execution
-    # ------------------------------------------------------------------
-    second_stream = await litellm.acompletion(
-        model=model,
-        api_key=api_key,
-        messages=messages,
-        tools=[],
-        tool_choice="none",
-        stream=True,
-    )
+    second_params = {
+        "model": model,
+        "messages": messages,
+        "tools": [],
+        "tool_choice": "none",
+        "stream": True,
+    }
+    if litellm.supports_reasoning(model):
+        second_params["reasoning_effort"] = "low"
+
+    second_stream = await litellm.acompletion(**second_params, api_key=api_key.reveal())
 
     async for chunk in second_stream:
         choice_delta = chunk["choices"][0]["delta"]
