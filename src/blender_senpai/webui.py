@@ -22,6 +22,11 @@ from .types.api_key import ApiKey
 logger = getLogger(__name__)
 
 
+GR_BUTTON_ORANGE = "primary"
+GR_BUTTON_YELLOW = "stop"
+GR_BUTTON_BLACK = "huggingface"
+
+
 @dataclass(frozen=True)
 class State:
     """Values that are unique per session.
@@ -172,7 +177,7 @@ def register_api_key_with(
             new_textbox_value = api_key.reveal()
 
             new_button = gr.Button(
-                value=t("label_verified", state.current_lang), variant="primary"
+                value=t("label_verified", state.current_lang), variant=GR_BUTTON_ORANGE
             )
 
             result = "OK"
@@ -193,7 +198,8 @@ def register_api_key_with(
         except Exception as e:
             logger.exception(e)
             new_button = gr.Button(
-                value=t("label_verify_error", state.current_lang), variant="stop"
+                value=t("label_verify_error", state.current_lang),
+                variant=GR_BUTTON_YELLOW,
             )
             return gr.skip(), gr.skip(), new_button, f"NG: {e}", gr.skip()
 
@@ -202,7 +208,9 @@ def register_api_key_with(
 
 def change_api_key_with(provider: Provider, button: gr.Button) -> Handler:
     def change_api_key(state: State, _request: gr.Request) -> tuple[gr.Button]:
-        return gr.Button(value=t("label_verify", state.current_lang), variant="stop")
+        return gr.Button(
+            value=t("label_verify", state.current_lang), variant=GR_BUTTON_BLACK
+        )
 
     return change_api_key
 
@@ -304,9 +312,9 @@ def interface(locale: str):
                             ),
                             lang,
                         ),
-                        variant="primary"
+                        variant=GR_BUTTON_ORANGE
                         if ApiKeyRepository.get("openai")
-                        else "huggingface",
+                        else GR_BUTTON_BLACK,
                         scale=1,
                     )
 
@@ -336,9 +344,9 @@ def interface(locale: str):
                             ),
                             lang,
                         ),
-                        variant="primary"
+                        variant=GR_BUTTON_ORANGE
                         if ApiKeyRepository.get("anthropic")
-                        else "huggingface",
+                        else GR_BUTTON_BLACK,
                         scale=1,
                     )
 
@@ -368,9 +376,9 @@ def interface(locale: str):
                             ),
                             lang,
                         ),
-                        variant="primary"
+                        variant=GR_BUTTON_ORANGE
                         if ApiKeyRepository.get("gemini")
-                        else "huggingface",
+                        else GR_BUTTON_BLACK,
                         scale=1,
                     )
 
