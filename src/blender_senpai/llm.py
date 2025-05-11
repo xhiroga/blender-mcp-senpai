@@ -1,8 +1,9 @@
 import base64
 import inspect
 import json
+import os
 from logging import getLogger
-from typing import Any, AsyncGenerator, Literal, TypedDict
+from typing import Any, AsyncGenerator, Literal, Mapping, TypedDict
 
 import litellm
 
@@ -129,8 +130,8 @@ async def completion_stream(
 ) -> AsyncGenerator[str, None]:
     logger.info(f"{model=} {api_key=} {message=} {history[-3:]=} {lang=}")
 
-    # if os.environ.get("DEBUG"):
-    #     litellm._turn_on_debug()
+    if os.environ.get("DEBUG"):
+        litellm._turn_on_debug()
 
     messages = _build_messages(model, message, history, lang)
 
@@ -168,19 +169,33 @@ async def completion_stream(
         # Handle streaming tool-call deltas (name / arguments arrive in pieces)
         if (tool_call_deltas := choice_delta.get("tool_calls")) is not None:
             for tc in tool_call_deltas:
-                index = tc.get("index", 0)
+                tc_dict = _dump_tool_call_delta(tc)
+
+                index = tc_dict.get("index", 0)
                 entry = collected_tool_calls.setdefault(
                     index,
-                    {"id": tc.get("id", ""), "function": {"name": "", "arguments": ""}},
+                    {
+                        "id": tc_dict.get("id", ""),
+                        "type": tc_dict.get("type", "function"),
+                        "function": {"name": "", "arguments": ""},
+                    },
                 )
 
                 # id can be provided multiple times – always update to most recent
-                if "id" in tc:
-                    entry["id"] = tc["id"]
+                if "id" in tc_dict:
+                    entry["id"] = tc_dict["id"]
 
-                if "function" in tc:
-                    func_delta = tc["function"]
+                # type can also be sent multiple times – keep latest, required by OpenAI
+                if "type" in tc_dict:
+                    entry["type"] = tc_dict["type"]
+
+                if "function" in tc_dict:
+                    func_delta = tc_dict["function"]
                     entry_func = entry["function"]
+                    # Some providers return the nested function delta as an object too.
+                    if not isinstance(func_delta, Mapping):
+                        func_delta = _dump_tool_call_delta(func_delta)
+
                     entry_func["name"] += func_delta.get("name", "")
                     entry_func["arguments"] += func_delta.get("arguments", "")
 
@@ -248,3 +263,34 @@ async def completion_stream(
         choice_delta = chunk["choices"][0]["delta"]
         if (token := choice_delta.get("content")) is not None:
             yield token
+
+
+# ---------------------------------------------------------------------------
+# Utility helpers
+# ---------------------------------------------------------------------------
+
+
+def _dump_tool_call_delta(delta: Any) -> dict[str, Any]:
+    """Return a plain dict representation of a tool-call delta.
+
+    LiteLLM can return either `dict` or a *pydantic* BaseModel (e.g.
+    `ChatCompletionDeltaToolCall`).  We normalise both cases into `dict` so
+    that the rest of the code can rely on `.get()` access without special
+    handling.
+    """
+
+    # Fast-path: already a mapping
+    if isinstance(delta, Mapping):
+        return dict(delta)
+
+    # Newer LiteLLM versions expose a pydantic BaseModel.  Prefer the
+    # Pydantic-v2 `model_dump()` API if available, otherwise fallback to v1
+    # `.dict()`.
+    if hasattr(delta, "model_dump"):
+        return delta.model_dump(exclude_none=True, exclude_unset=True)
+    if hasattr(delta, "dict"):
+        return delta.dict(exclude_none=True, exclude_unset=True)  # type: ignore[arg-type]
+
+    # As a safeguard, cast to str so that unexpected types still yield a value
+    logger.warning(f"Unexpected tool call delta type: {type(delta)} -> {delta}")
+    return {}
