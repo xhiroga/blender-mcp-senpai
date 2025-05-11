@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from logging import getLogger
 
 import keyring  # type: ignore
@@ -20,52 +21,59 @@ class ApiKeyRepository:
     """
 
     _SERVICE_NAME: str = "blender_senpai"
-    # Providers supported by the application. Update this list when adding new providers.
-    _KNOWN_PROVIDERS: tuple[str, ...] = ("openai", "anthropic", "gemini")
+    _ACCOUNT_NAME: str = "api_keys"  # Single record in Keychain
 
-    # In-memory cache. Keys are loaded lazily.
+    # In-memory cache. Filled lazily after first access.
     _cache: dict[str, ApiKey] = {}
-
-    # ---------------------------------------------------------------------
-    # private helpers
-    # ---------------------------------------------------------------------
-    @classmethod
-    def _load_provider_list(cls) -> list[str]:
-        """Return the list of providers that the application knows about."""
-        return list(cls._KNOWN_PROVIDERS)
+    _loaded: bool = False
 
     @classmethod
-    def _ensure_loaded(cls, provider: str) -> None:
-        """Make sure the cache contains the key for *provider* if it exists in the key-ring."""
-        if provider in cls._cache:
+    def _load_all(cls) -> None:
+        """Load the JSON blob from Keychain into the in-memory cache."""
+        logger.debug(f"{cls._loaded=}, {cls._cache=}")
+        if cls._loaded:
             return
-        stored_value = keyring.get_password(cls._SERVICE_NAME, provider)
-        if stored_value is not None:
-            cls._cache[provider] = ApiKey(stored_value)
 
-    # ---------------------------------------------------------------------
-    # public interface
-    # ---------------------------------------------------------------------
+        raw = keyring.get_password(cls._SERVICE_NAME, cls._ACCOUNT_NAME)
+        logger.debug(f"{raw is not None=}")
+
+        if raw:
+            try:
+                data: dict[str, str] = json.loads(raw)
+                cls._cache = {k: ApiKey(v) for k, v in data.items()}
+            except json.JSONDecodeError:
+                logger.warning("JSON decode error")
+                cls._cache = {}
+
+        cls._loaded = True
+
+    @classmethod
+    def _persist_all(cls) -> None:
+        """Persist the entire cache back to Keychain as a JSON blob."""
+        logger.debug(f"{cls._cache=}")
+        payload = json.dumps({k: v.reveal() for k, v in cls._cache.items()})
+        keyring.set_password(cls._SERVICE_NAME, cls._ACCOUNT_NAME, payload)
+        logger.debug(f"{len(cls._cache)=}")
+
     @classmethod
     def save(cls, provider: str, api_key: ApiKey) -> None:
-        logger.info(f"save: {provider=}, {api_key=}")
+        logger.info(f"{provider=}, {api_key=}")
+
+        cls._load_all()
 
         cls._cache[provider] = api_key
-
-        keyring.set_password(cls._SERVICE_NAME, provider, api_key.reveal())
+        cls._persist_all()
 
     @classmethod
     def get(cls, provider: str) -> ApiKey | None:
-        cls._ensure_loaded(provider)
+        cls._load_all()
+
         result = cls._cache.get(provider)
-        logger.info(f"get: {provider=} -> {result is not None}")
+        logger.info(f"{provider=}, {result is not None=}")
         return result
 
     @classmethod
     def list(cls) -> dict[str, ApiKey]:
-        # Ensure that every known provider is checked for a stored key
-        for provider in cls._KNOWN_PROVIDERS:
-            cls._ensure_loaded(provider)
-        logger.info(f"list -> {list(cls._cache.keys())}")
-        # return a *copy* so callers cannot mutate our cache directly
+        cls._load_all()
+
         return dict(cls._cache)
