@@ -171,7 +171,9 @@ def register_api_key_with(
 
             new_textbox_value = api_key.reveal()
 
-            new_button = gr.Button(value=t("label_verified", state.current_lang))
+            new_button = gr.Button(
+                value=t("label_verified", state.current_lang), variant="primary"
+            )
 
             result = "OK"
 
@@ -190,15 +192,17 @@ def register_api_key_with(
 
         except Exception as e:
             logger.exception(e)
-            new_button = gr.Button(value=t("label_verify_error", state.current_lang))
-            return new_state, gr.skip(), new_button, f"NG: {e}", gr.skip()
+            new_button = gr.Button(
+                value=t("label_verify_error", state.current_lang), variant="stop"
+            )
+            return gr.skip(), gr.skip(), new_button, f"NG: {e}", gr.skip()
 
     return register_api_key
 
 
 def change_api_key_with(provider: Provider, button: gr.Button) -> Handler:
     def change_api_key(state: State, _request: gr.Request) -> tuple[gr.Button]:
-        return gr.Button(value=t("label_verify", state.current_lang))
+        return gr.Button(value=t("label_verify", state.current_lang), variant="stop")
 
     return change_api_key
 
