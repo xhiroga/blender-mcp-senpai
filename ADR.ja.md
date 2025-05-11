@@ -11,7 +11,10 @@ Pythonにおけるその他の選択肢としては、Streamlit や Chinlit が�
 JS/TSのUIライブラリを用いてフロントエンドをビルドし、それを Starlette でホストする選択肢もある。  
 これはBlender側とチャット側の通信経路をMCPに限定する意味でも積極的に検討したい。  
 
-ライブラリとして利用できそうなのは、AI SDK, LangChain Agent Chat UI, assistant-ui など。
+ライブラリとして利用できそうなのは、AI SDK, LangChain Agent Chat UI, assistant-ui など。  
+特にAI SDK + assistant-ui が良さそうだが、Static export した状態で AI SDKを利用できないのでしばらく静観。
+
+参考: <https://github.com/vercel/ai/issues/5140>
 
 ### データの流れ
 
