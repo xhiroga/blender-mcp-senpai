@@ -1,7 +1,6 @@
 import base64
 import inspect
 import json
-import os
 from logging import getLogger
 from typing import Any, AsyncGenerator, Literal, Mapping, TypedDict
 
@@ -130,9 +129,6 @@ async def completion_stream(
 ) -> AsyncGenerator[str, None]:
     logger.info(f"{model=} {api_key=} {message=} {history[-3:]=} {lang=}")
 
-    if os.environ.get("DEBUG"):
-        litellm._turn_on_debug()
-
     messages = _build_messages(model, message, history, lang)
 
     # ------------------------------------------------------------------
@@ -254,9 +250,7 @@ async def completion_stream(
         "tool_choice": "none",
         "stream": True,
     }
-    if litellm.supports_reasoning(model):
-        second_params["reasoning_effort"] = "low"
-
+    logger.info(f"litellm.acompletion: {second_params=}")
     second_stream = await litellm.acompletion(**second_params, api_key=api_key.reveal())
 
     async for chunk in second_stream:

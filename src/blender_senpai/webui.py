@@ -241,6 +241,15 @@ def interface(locale: str):
 
     # Hide footer: https://github.com/gradio-app/gradio/issues/6696
     css = """
+    img[src*="xhiroga.github.io" i]:not([src*=".gif" i]){
+        display: inline-block;
+        height: 1em;
+        width:  auto;
+        vertical-align: -0.15em;
+        margin: 0;
+        border-radius: inherit;
+    }
+
     footer {visibility: hidden}
     """
 
