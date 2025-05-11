@@ -98,6 +98,24 @@ def download_wheels(
     )
 
 
+def download_pywin32(python_version: str, platform: Platform):
+    """Workaround for https://github.com/pypa/pip/issues/11664"""
+    subprocess.run(
+        [
+            "pip",
+            "download",
+            "pywin32",
+            "pywin32-ctypes",
+            "-d",
+            f"{ZIP_TARGET_DIR}/wheels",
+            "--only-binary=:all:",
+            f"--python-version={python_version}",
+            f"--platform={platform.pypi_suffix}",
+            "--no-deps",  # deps are resolved by uv export
+        ],
+    )
+
+
 def generate_blender_manifest():
     with open("blender_manifest_template.toml", mode="r") as f:
         manifest = tomlkit.load(f)
@@ -180,6 +198,9 @@ def main():
 
     for platform in platforms:
         download_wheels(dependencies(), "3.11", platform)
+
+        if platform.pypi_suffix.startswith("win"):
+            download_pywin32("3.11", platform)
 
     generate_blender_manifest()
 
