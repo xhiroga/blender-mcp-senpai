@@ -44,7 +44,7 @@ class ApiKeyRepository:
 
     @classmethod
     def save(cls, provider: str, api_key: ApiKey) -> None:
-        logger.info(f"{provider=}, {api_key=}")
+        logger.debug(f"{provider=}, {api_key=}")
 
         updated = dict(cls._got())  # copy to mutate
         updated[provider] = api_key
@@ -53,7 +53,7 @@ class ApiKeyRepository:
     @classmethod
     def get(cls, provider: str) -> ApiKey | None:
         result = cls._got().get(provider)
-        logger.info(f"{provider=}, {result=}")
+        logger.debug(f"{provider=}, {result=}")
         return result
 
     @classmethod

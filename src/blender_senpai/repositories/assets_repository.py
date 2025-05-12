@@ -31,7 +31,7 @@ class AssetsRepository:
             ) as resp:
                 text = resp.read().decode("utf-8")
             records = [json.loads(line) for line in text.splitlines() if line.strip()]
-            logger.info(f"{len(records)=}")
+            logger.debug(f"{len(records)=}")
             return records
         except Exception as e:
             logger.warning(f"{e!r}")
@@ -41,5 +41,5 @@ class AssetsRepository:
     def list_image_urls(cls) -> list[str]:
         records = cls._fetched()
         urls = [r["url"] for r in records]
-        logger.info(f"{len(urls)=}")
+        logger.debug(f"{len(urls)=}")
         return urls
