@@ -16,25 +16,22 @@ from .types.api_key import ApiKey
 Provider = Literal["openai", "gemini", "anthropic", "tutorial"]
 ModelConfig = TypedDict("model", {"provider": Provider, "model": str, "default": bool})
 model_configs: list[ModelConfig] = [
+    # https://platform.openai.com/docs/models
     # https://docs.cursor.com/settings/models
     # https://docs.litellm.ai/docs/providers/openai
-    {"provider": "openai", "model": "gpt-4o", "default": False},
-    {"provider": "openai", "model": "gpt-4o-mini", "default": True},
-    {"provider": "openai", "model": "gpt-4.1", "default": False},
-    {"provider": "openai", "model": "o1", "default": False},
-    {"provider": "openai", "model": "o1-mini", "default": False},
+    {"provider": "openai", "model": "o4-mini", "default": True},
     {"provider": "openai", "model": "o3", "default": False},
-    {"provider": "openai", "model": "o3-mini", "default": False},
-    {"provider": "openai", "model": "o4-mini", "default": False},
-    # https://docs.anthropic.com/en/docs/about-claude/models/all-models
-    {"provider": "anthropic", "model": "claude-3-7-sonnet-20250219", "default": False},
-    {"provider": "anthropic", "model": "claude-3-5-haiku-20241022", "default": True},
+    {"provider": "openai", "model": "gpt-4.1-mini", "default": False},
+    {"provider": "openai", "model": "gpt-4.1", "default": False},
     # https://docs.litellm.ai/docs/providers/gemini
     # https://ai.google.dev/gemini-api/docs/models
     {"provider": "gemini", "model": "gemini-2.5-flash-preview-04-17", "default": True},
     {"provider": "gemini", "model": "gemini-2.5-pro-preview-05-06", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash", "default": False},
     {"provider": "gemini", "model": "gemini-2.0-flash-lite", "default": False},
+    # https://docs.anthropic.com/en/docs/about-claude/models/all-models
+    {"provider": "anthropic", "model": "claude-3-7-sonnet-20250219", "default": False},
+    {"provider": "anthropic", "model": "claude-3-5-haiku-20241022", "default": True},
     # Debug provider to show the tutorial
     {"provider": "tutorial", "model": "Tutorial", "default": True},
 ]
