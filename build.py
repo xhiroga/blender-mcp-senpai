@@ -184,8 +184,6 @@ def main():
         # Workaround for https://github.com/pypa/pip/issues/11664
         if platform.pypi_suffix.startswith("win"):
             download_wheels(["pywin32", "pywin32-ctypes"], "3.11", platform)
-        elif platform.pypi_suffix.startswith("linux"):
-            download_wheels(["dbus-python"], "3.11", platform)
 
     generate_blender_manifest()
 
