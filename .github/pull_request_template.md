@@ -1,5 +1,3 @@
-# Pull Request Template
-
 ## 🔥 Issue
 
 <!-- Links to issues, requests, and bugs -->

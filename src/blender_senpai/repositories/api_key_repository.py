@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from logging import getLogger
 
 import keyring  # type: ignore
@@ -12,56 +13,56 @@ logger = getLogger(__name__)
 
 class ApiKeyRepository:
     _SERVICE_NAME: str = "blender_senpai"
-    _ACCOUNT_NAME: str = "api_keys"  # Single record in Keychain
+    _ACCOUNT_NAME: str = "api_keys"
 
-    # In-memory cache. Filled lazily after first access.
-    _cache: dict[str, ApiKey] = {}
-    _loaded: bool = False
-
-    @classmethod
-    def _load_all(cls) -> None:
-        logger.debug(f"{cls._loaded=}, {cls._cache=}")
-        if cls._loaded:
-            return
-
-        raw = keyring.get_password(cls._SERVICE_NAME, cls._ACCOUNT_NAME)
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def _got() -> dict[str, ApiKey]:
+        raw = keyring.get_password(
+            ApiKeyRepository._SERVICE_NAME, ApiKeyRepository._ACCOUNT_NAME
+        )
         logger.debug(f"{raw is not None=}")
 
         if raw:
             try:
                 data: dict[str, str] = json.loads(raw)
-                cls._cache = {k: ApiKey(v) for k, v in data.items()}
+                parsed = {k: ApiKey(v) for k, v in data.items()}
+                logger.debug(f"{parsed=}")
+                return parsed
             except json.JSONDecodeError:
                 logger.warning("JSON decode error")
-                cls._cache = {}
 
-        cls._loaded = True
+        return {}
 
-    @classmethod
-    def _persist_all(cls) -> None:
-        logger.debug(f"{cls._cache=}")
-        payload = json.dumps({k: v.reveal() for k, v in cls._cache.items()})
-        keyring.set_password(cls._SERVICE_NAME, cls._ACCOUNT_NAME, payload)
+    @staticmethod
+    def _set(data: dict[str, ApiKey]) -> None:
+        payload = json.dumps({k: v.reveal() for k, v in data.items()})
+        keyring.set_password(
+            ApiKeyRepository._SERVICE_NAME, ApiKeyRepository._ACCOUNT_NAME, payload
+        )
+        ApiKeyRepository._got.cache_clear()
 
     @classmethod
     def save(cls, provider: str, api_key: ApiKey) -> None:
-        logger.info(f"{provider=}, {api_key=}")
+        logger.debug(f"{provider=}, {api_key=}")
 
-        cls._load_all()
-
-        cls._cache[provider] = api_key
-        cls._persist_all()
+        updated = dict(cls._got())  # copy to mutate
+        updated[provider] = api_key
+        cls._set(updated)
 
     @classmethod
     def get(cls, provider: str) -> ApiKey | None:
-        cls._load_all()
-
-        result = cls._cache.get(provider)
-        logger.info(f"{provider=}, {result is not None=}")
+        result = cls._got().get(provider)
+        logger.debug(f"{provider=}, {result=}")
         return result
 
     @classmethod
     def list(cls) -> dict[str, ApiKey]:
-        cls._load_all()
+        return cls._got()
 
-        return dict(cls._cache)
+    @classmethod
+    def delete(cls, provider: str) -> None:
+        updated = dict(cls._got())  # copy to mutate
+        if provider in updated:
+            del updated[provider]
+        cls._set(updated)

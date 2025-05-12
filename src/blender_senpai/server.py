@@ -38,6 +38,7 @@ class Server:
 
     def run(self):
         # In Python, there is no default event loop except for main thread.
+        # Known Issue: Occasionally, `curl: (18) transfer closed with outstanding read data remaining` occurs For now, restarting the OS fixes the issue, but...
         try:
             asyncio.get_running_loop()
         except RuntimeError:
