@@ -74,5 +74,7 @@ def dump(obj: Any, *, depth: int = 0, max_depth: int = 8) -> Any:
 
 if __name__ == "__main__":
     log_dir = Path(bpy.utils.user_resource("CONFIG", path="dumps", create=True))
-    with open(log_dir / f"bpy_{time.strftime('%Y%m%d_%H%M%S')}.json", "w") as f:
+    file = log_dir / f"bpy_{time.strftime('%Y%m%d_%H%M%S')}.json"
+    with open(file, "w") as f:
         json.dump(dump(bpy, depth=0, max_depth=8), f, ensure_ascii=False, indent=2)
+    print(f"dumped to {file}")

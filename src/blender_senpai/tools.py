@@ -115,6 +115,10 @@ def get_context() -> Result[Any]:
     # Orbit Around Selection
     inputs_info["use_rotate_around_active"] = inputs.use_rotate_around_active
 
+    # Auto
+    inputs_info["use_auto_perspective"] = inputs.use_auto_perspective
+    inputs_info["use_mouse_depth_navigate"] = inputs.use_mouse_depth_navigate
+
     # Zoom to Mouse Position
     inputs_info["use_zoom_to_mouse"] = inputs.use_zoom_to_mouse
 
