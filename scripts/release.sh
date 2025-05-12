@@ -1,4 +1,4 @@
-VERSION=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+VERSION=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
 git commit -m "feat: v$VERSION"
 git tag v$VERSION
 git push
