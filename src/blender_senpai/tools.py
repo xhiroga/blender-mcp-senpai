@@ -337,6 +337,7 @@ def modify_with_geometry_nodes(names: list[str], node_group_name: str) -> Result
             if mod is None:
                 mod = obj.modifiers.new(name=node_group.name, type="NODES")
             mod.node_group = node_group
+            mod.show_render = False
             applied_names.append(obj_name)
 
         return {
