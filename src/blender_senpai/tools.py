@@ -290,6 +290,26 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
 @mainthreadify()
 @tool(
     parameters={
+        "type": "list",
+        "properties": {
+            "names": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Object name (key in bpy.data.objects)",
+                "example": ["Cube", "Suzanne"],
+            },
+            "node_tree": {"type": "string", "enum": ["BlenderSenpai.n-gon"]},
+        },
+        "required": ["names"],
+    },
+)
+def modify_with_geometry_nodes(names: list[str]):
+    pass
+
+
+@mainthreadify()
+@tool(
+    parameters={
         "type": "object",
         "properties": {
             "file_path": {
