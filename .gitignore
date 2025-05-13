@@ -1,3 +1,4 @@
+*.blend1
 logs/
 output/
 src/blender_senpai/blender_manifest.toml

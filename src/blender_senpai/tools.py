@@ -1,3 +1,4 @@
+# Additional stdlib imports for asset handling
 import inspect
 import io
 import json
@@ -10,6 +11,8 @@ from typing import Any, Callable, Literal, ParamSpec, TypedDict, TypeVar
 
 import bpy
 
+from .adapters.blender import load_node_group
+from .assets import DESCRIPTIONS, NODE_GROUPS
 from .log_config import configure
 from .system_prompt import SYSTEM_PROMPT
 from .utils import mainthreadify
@@ -285,6 +288,65 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
             }
         ],
     }
+
+
+@mainthreadify()
+@tool(
+    parameters={
+        "type": "object",
+        "properties": {
+            "names": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Object name (key in bpy.data.objects)",
+                "example": ["Cube", "Suzanne"],
+            },
+            "node_group_name": {
+                "type": "string",
+                "enum": list(NODE_GROUPS.keys()),
+                "description": f"Node group name to apply. {DESCRIPTIONS}",
+                "example": list(NODE_GROUPS.keys())[0],
+            },
+        },
+        "required": ["names", "node_group_name"],
+    },
+)
+def modify_with_geometry_nodes(names: list[str], node_group_name: str) -> Result:
+    """Apply geometry nodes to objects."""
+    logger.info(f"{names=}, {node_group_name=}")
+
+    try:
+        node_group = load_node_group(node_group_name)
+
+        applied_names = []
+        for obj_name in names:
+            obj = bpy.data.objects.get(obj_name)
+            if obj is None:
+                logger.warning(f"{obj_name=} not found")
+                continue
+
+            # Find existing modifier or create a new one.
+            mod = next(
+                (
+                    m
+                    for m in obj.modifiers
+                    if m.type == "NODES" and m.node_group == node_group
+                ),
+                None,
+            )
+            if mod is None:
+                mod = obj.modifiers.new(name=node_group.name, type="NODES")
+            mod.node_group = node_group
+            applied_names.append(obj_name)
+
+        return {
+            "status": "ok",
+            "payload": f"{node_group=} applied to {', '.join(applied_names)}",
+        }
+
+    except Exception as e:
+        logger.error(f"{e}")
+        return {"status": "error", "payload": str(e)}
 
 
 @mainthreadify()
