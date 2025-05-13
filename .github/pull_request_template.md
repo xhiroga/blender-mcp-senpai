@@ -27,6 +27,15 @@
   - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed TWICE
   - [ ] `get_objects` successfully executed
 
+### ✨ `.blend`
+
+- [ ] Blender is set to English language for creation and editing
+- [ ] Assets to be appended have the prefix `BLSP.` in their names
+- [ ] Assets to be appended have Fake User enabled
+- [ ] Unnecessary objects (lights, cameras, etc.) have been removed
+- [ ] `File > Clean Up > Purge Unused Data...` has been executed before saving
+- [ ] When updating assets, create new ones with version numbers (e.g., `BLSP.SomeAsset.V2`) instead of updating existing ones
+
 ## 👂 etc
 
 <!-- Please note any additional information. -->

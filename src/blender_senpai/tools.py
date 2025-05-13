@@ -1,17 +1,18 @@
 # Additional stdlib imports for asset handling
-import importlib.resources as pkg_res
 import inspect
 import io
 import json
 import os
 import sys
 from contextlib import redirect_stdout
-from functools import lru_cache, wraps
+from functools import wraps
 from logging import getLogger
 from typing import Any, Callable, Literal, ParamSpec, TypedDict, TypeVar
 
 import bpy
 
+from .adapters.blender import load_node_group
+from .assets import DESCRIPTIONS, NODE_GROUPS
 from .log_config import configure
 from .system_prompt import SYSTEM_PROMPT
 from .utils import mainthreadify
@@ -289,83 +290,6 @@ def get_object(name: str) -> Result[list[ReadResourceContents]]:
     }
 
 
-# ---------------------------------------------------------------------------
-# Geometry Nodes visualizer utilities
-# ---------------------------------------------------------------------------
-
-_ASSET_PKG = __package__ + ".assets"
-_ASSET_BLEND = str(pkg_res.files(_ASSET_PKG) / "visualizer.blend")
-print(f"{_ASSET_PKG}, {_ASSET_BLEND=}")
-
-
-def _append_datablocks(node_group_name: str, material_names: set[str]) -> None:
-    """Append the specified NodeGroup and Materials from the asset .blend file.
-
-    If a datablock already exists in the current file, it is *not* duplicated.
-    """
-    logger.info(
-        f"Appending datablocks: node_group_name={node_group_name}, material_names={list(material_names)}"
-    )
-
-    with bpy.data.libraries.load(_ASSET_BLEND, link=False) as (src, dst):
-        # Append the node group if it is present in the asset and absent here.
-        if (node_group_name in src.node_groups) and (
-            node_group_name not in bpy.data.node_groups
-        ):
-            dst.node_groups.append(node_group_name)
-
-        # Append missing materials.
-        dst.materials.extend(
-            [
-                mn
-                for mn in material_names
-                if (mn in src.materials) and (mn not in bpy.data.materials)
-            ]
-        )
-
-
-@lru_cache(maxsize=None)
-def _scan_required_materials(node_group_name: str) -> tuple[str, ...]:
-    """Return material names referenced by the specified node group.
-
-    Results are memoised via lru_cache so repeated calls are free.
-    """
-    nt = bpy.data.node_groups.get(node_group_name)
-    if nt is None:
-        logger.debug(
-            f"NodeGroup {node_group_name} not yet loaded; cannot scan materials"
-        )
-        return tuple()
-
-    names: set[str] = set()
-    for node in nt.nodes:
-        if hasattr(node, "material") and node.material is not None:
-            names.add(node.material.name)
-    logger.info(f"Scanned required materials for {node_group_name}: {names=}")
-    return tuple(sorted(names))
-
-
-def _ensure_node_group_and_deps(node_group_name: str) -> bpy.types.NodeTree:
-    """Ensure the given node group and its dependent materials exist in the current file."""
-    # First, append node group if missing.
-    node_group = bpy.data.node_groups.get(node_group_name)
-    if node_group is None:
-        _append_datablocks(node_group_name, set())
-        node_group = bpy.data.node_groups.get(node_group_name)
-        if node_group is None:
-            raise ValueError(f"Failed to append node group: {node_group_name}")
-
-    # Scan for required materials (memoised).
-    required_mats = set(_scan_required_materials(node_group_name))
-
-    # Append missing materials if any.
-    missing_mats = {mn for mn in required_mats if mn not in bpy.data.materials}
-    if missing_mats:
-        _append_datablocks(node_group_name, missing_mats)
-
-    return node_group
-
-
 @mainthreadify()
 @tool(
     parameters={
@@ -377,33 +301,28 @@ def _ensure_node_group_and_deps(node_group_name: str) -> bpy.types.NodeTree:
                 "description": "Object name (key in bpy.data.objects)",
                 "example": ["Cube", "Suzanne"],
             },
-            "node_tree": {
+            "node_group_name": {
                 "type": "string",
-                "enum": ["BLSP.Ngon"],
-                "description": "Visualizer NodeTree to apply",
-                "example": "BLSP.Ngon",
+                "enum": list(NODE_GROUPS.keys()),
+                "description": f"Node group name to apply. {DESCRIPTIONS}",
+                "example": list(NODE_GROUPS.keys())[0],
             },
         },
-        "required": ["names"],
+        "required": ["names", "node_group_name"],
     },
 )
-def modify_with_geometry_nodes(
-    names: list[str], node_tree: str = "BLSP.Ngon"
-) -> Result:
-    """Attach the specified Geometry Nodes visualizer to given objects.
-
-    Each object in *names* receives a NODES modifier whose node_group is *node_tree*.
-    Required datablocks are auto‐appended from assets/visualizer.blend.
-    """
-    logger.info(f"{names=}, {node_tree=}")
+def modify_with_geometry_nodes(names: list[str], node_group_name: str) -> Result:
+    """Apply geometry nodes to objects."""
+    logger.info(f"{names=}, {node_group_name=}")
 
     try:
-        node_group = _ensure_node_group_and_deps(node_tree)
+        node_group = load_node_group(node_group_name)
 
+        applied_names = []
         for obj_name in names:
             obj = bpy.data.objects.get(obj_name)
             if obj is None:
-                logger.warning(f"Object not found: {obj_name}")
+                logger.warning(f"{obj_name=} not found")
                 continue
 
             # Find existing modifier or create a new one.
@@ -416,10 +335,14 @@ def modify_with_geometry_nodes(
                 None,
             )
             if mod is None:
-                mod = obj.modifiers.new(name="SenpaiVisualizer", type="NODES")
+                mod = obj.modifiers.new(name=node_group.name, type="NODES")
             mod.node_group = node_group
+            applied_names.append(obj_name)
 
-        return {"status": "ok", "payload": "modifier applied"}
+        return {
+            "status": "ok",
+            "payload": f"{node_group=} applied to {', '.join(applied_names)}",
+        }
 
     except Exception as e:
         logger.error(f"{e}")
