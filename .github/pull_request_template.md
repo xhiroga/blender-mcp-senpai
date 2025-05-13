@@ -35,6 +35,7 @@
 - [ ] Unnecessary objects (lights, cameras, etc.) have been removed
 - [ ] `File > Clean Up > Purge Unused Data...` has been executed before saving
 - [ ] When updating assets, create new ones with version numbers (e.g., `BLSP.SomeAsset.V2`) instead of updating existing ones
+- [ ] Also edit `src/blender_senpai/assets/__init__.py` to update the asset list
 
 ## 👂 etc
 
