@@ -83,7 +83,7 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
-    bpy.app.timers.register(execute_queued_functions)
+    bpy.app.timers.register(execute_queued_functions, persistent=True)
     global server
     locale = bpy.app.translations.locale
     server = Server(locale)
