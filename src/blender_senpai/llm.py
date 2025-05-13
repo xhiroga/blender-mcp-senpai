@@ -8,7 +8,7 @@ import litellm
 
 from .i18n import Lang
 from .system_prompt import SYSTEM_PROMPT
-from .tools import tool_functions, tools
+from .tools import get_context, tool_functions, tools
 from .types.api_key import ApiKey
 
 # To Update models, use search-available models like o4-mini.
@@ -128,9 +128,13 @@ async def completion_stream(
 
     messages = _build_messages(model, message, history, lang)
 
-    # ------------------------------------------------------------------
-    # 1st completion – let the model decide whether it wants to call a tool
-    # ------------------------------------------------------------------
+    messages.append(
+        {
+            "role": "system",
+            "content": json.dumps({"context": await get_context()}),
+        }
+    )
+
     first_params = {
         "model": model,
         "messages": messages,
@@ -201,13 +205,9 @@ async def completion_stream(
     if collected_tool_calls:
         assistant_message["tool_calls"] = list(collected_tool_calls.values())
 
-    messages.append(assistant_message)  # type: ignore[arg-type]
+    messages.append(assistant_message)
 
-    # ------------------------------------------------------------------
-    # Tool execution phase (if any tool was requested)
-    # ------------------------------------------------------------------
     if "tool_calls" not in assistant_message:
-        # No tool calls – we are done
         return
 
     for tool_call in assistant_message["tool_calls"]:
@@ -254,11 +254,6 @@ async def completion_stream(
         choice_delta = chunk["choices"][0]["delta"]
         if (token := choice_delta.get("content")) is not None:
             yield token
-
-
-# ---------------------------------------------------------------------------
-# Utility helpers
-# ---------------------------------------------------------------------------
 
 
 def _dump_tool_call_delta(delta: Any) -> dict[str, Any]:

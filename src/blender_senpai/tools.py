@@ -11,7 +11,7 @@ from typing import Any, Callable, Literal, ParamSpec, TypedDict, TypeVar
 
 import bpy
 
-from .adapters.blender import load_node_group
+from .adapters.blender import filtered, load_node_group
 from .assets import DESCRIPTIONS, NODE_GROUPS
 from .log_config import configure
 from .system_prompt import SYSTEM_PROMPT
@@ -97,7 +97,11 @@ def get_context() -> Result[Any]:
         "blend_data": {
             "file_path": bpy.context.blend_data.filepath,
         },
+        # ex. 'OBJECT', 'EDIT_MESH', 'SCULPT', ...
+        "mode": bpy.context.mode,
         "preferences": {},
+        "tool_settings": {},
+        "scene": {},
         "window": {},
     }
 
@@ -127,17 +131,41 @@ def get_context() -> Result[Any]:
 
     payload["preferences"]["inputs"] = inputs_info
 
+    scene_info = {}
+    # ex. 'GLOBAL', 'LOCAL', 'NORMAL', ...
+    scene_info["transform_orientation_slots"] = [
+        {"type": slot.type} for slot in bpy.context.scene.transform_orientation_slots
+    ]
+
+    tool_settings = {}
+    for attr in dir(bpy.context.tool_settings):
+        if not attr.startswith("_"):
+            value = getattr(bpy.context.tool_settings, attr)
+            if type(value) in [bool, int, float, str]:
+                tool_settings[attr] = value
+                # mesh_select_mode: ex. (True, False, False)
+                # transform_pivot_point: ex. 'BOUNDING_BOX_CENTER', 'CURSOR', 'INDIVIDUAL_ORIGINS', ...
+                # use_snap: bool
+                # use_proportional_***: bool
+                # snap_elements: ex. {'INCREMENT'}, ...
+                # snap_elements_base: ex. {'INCREMENT'}, ...
+                # snap_elements_individual: ex. set(), ...
+                # snap_target: ex. 'CLOSEST', ...
+                # snap_uv_element: ex. {'INCREMENT'}, ...
+
+    payload["tool_settings"] = tool_settings
+
     window = bpy.context.window
     window_info = {"screen": {"areas": []}}
     for area in window.screen.areas:
         area_info = {"type": area.type, "ui_type": area.ui_type, "spaces": []}
         for space in area.spaces:
-            space_info = {"type": space.type}
+            space_info = filtered(space)
             match space.type:
                 case "VIEW_3D":
-                    space_info["view_3d"] = {
-                        "show_gizmo": space.show_gizmo,
-                    }
+                    space_info["overlay"] = filtered(space.overlay)
+                    space_info["region_3d"] = filtered(space.region_3d)
+                    space_info["shading"] = filtered(space.shading)
             area_info["spaces"].append(space_info)
         window_info["screen"]["areas"].append(area_info)
     payload["window"] = window_info
