@@ -1,10 +1,24 @@
 import logging
+from typing import Any
 
 import bpy
 
 from ..assets import NODE_GROUPS
 
 logger = logging.getLogger(__name__)
+
+
+def filtered(struct: bpy.types.bpy_struct) -> dict[str, Any]:
+    filtered = {}
+    for attr in dir(struct):
+        if not attr.startswith("_"):
+            value = getattr(struct, attr)
+            if type(value) in [bool, int, float, str]:
+                filtered[attr] = value
+            elif type(value) in [tuple, list]:
+                if all(isinstance(item, (bool, int, float, str)) for item in value):
+                    filtered[attr] = list(value)
+    return filtered
 
 
 def _scan_required_materials(node_group: bpy.types.GeometryNodeTree) -> tuple[str, ...]:
