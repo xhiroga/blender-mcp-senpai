@@ -52,8 +52,41 @@
 
 ## 🛠️ Quick Start
 
-```json
+### To Claude
 
+NOTE: After configuration, you need to restart the app. Especially on Windows, please terminate the process from Task Manager.
+
+```json
+{
+    "mcpServers": {
+        "blender-senpai": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "supergateway",
+                "--sse",
+                "http://localhost:13180/sse"
+            ]
+        }
+    }
+}
+```
+
+### To Dive
+
+```json
+{
+  "mcpServers": {
+    "blender-senpai": {
+      "transport": "sse",
+      "enabled": true,
+      "command": null,
+      "args": [],
+      "env": {},
+      "url": "http://localhost:13180/sse"
+    }
+  }
+}
 ```
 
 ## 🔧 Development
