@@ -60,7 +60,7 @@
 - Search `Blender Senpai` and install it
 - `Add-ons` > `Blender Senpai` > Enable it
 
-### To Claude
+### To Claude, Cline, Roo Code
 
 NOTE: After configuration, you need to restart the app. Especially on Windows, please terminate the process from Task Manager.
 
