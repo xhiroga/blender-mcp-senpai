@@ -39,7 +39,7 @@
 |---|---|---|
 | ✅ | **Auto n-gon Highlight** – instantly spot topology issues | Implemented |
 | ✅ | **AI Comments** – ChatGPT / Claude / Gemini suggest improvements | Implemented |
-| ✅ | **Zero Configuration** – works out-of-the-box, no external MCP server | Implemented |
+| ✅ | **Zero Configuration** – works out-of-the-box, no external MCP client | Implemented |
 | 🚧 | Asset Store Integration | Planned |
 
 ---
