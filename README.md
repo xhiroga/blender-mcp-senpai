@@ -52,6 +52,8 @@
 
 ## 🛠️ Quick Start
 
+[![Install Blender Senpai Demo](https://img.youtube.com/vi/COK-hvvCgMM/0.jpg)](https://www.youtube.com/watch?v=COK-hvvCgMM)
+
 ### To Blender
 
 - Open Blender
