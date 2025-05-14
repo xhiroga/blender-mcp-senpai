@@ -1,85 +1,57 @@
-# Blender Senpai
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Blender Senpai Logo" width="240" height="240">
+</p>
 
-![Logo](docs/assets/logo/logo.png)
+<h1 align="center">Blender MCP Senpai</h1>
+<p align="center"><em>Your AI-assisted mentor for Blender.</em></p>
 
-Your senpai (先輩, mentor) of Blener.
+<p align="center">
+  <a href="https://github.com/xhiroga/blender-mcp-senpai/actions">
+    <img alt="CI" src="https://github.com/xhiroga/blender-mcp-senpai/actions/workflows/ci.yml/badge.svg">
+  </a>
+  <img alt="Blender 4.2+" src="https://img.shields.io/badge/Blender-4.2%2B-orange?logo=blender">
+  <img alt="GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue">
+  <a href="https://github.com/sponsors/xhiroga">
+    <img alt="Sponsor" src="https://img.shields.io/github/sponsors/xhiroga?style=social">
+  </a>
+  <a href="https://discord.gg/7z9HqgR8Bd">
+    <img alt="Discord" src="https://img.shields.io/discord/1352831203597877311?label=Discord&logo=discord&style=flat">
+  </a>
+</p>
 
-## About
+---
 
-Get instant answers to your Blender file questions from ChatGPT/Claude/Gemini/...!
+## Feedback welcome! Feel free to open an [Issue](https://github.com/xhiroga/blender-mcp-senpai/issues) or join our [Discord](https://discord.gg/7z9HqgR8Bd)
 
-## Features
+---
 
-✅ Ask questions about your currently open Blender file to ChatGPT/Claude/Gemini/...!  
-✅ No complicated MCP server setup required! Just a Blender extension  
-✅ Detailed explanations of Blender concepts with GIF animations  
-✅ Multi-language support  
-🚧 Save chat history locally  
-🚧 Automatically share workspace state with AI through images  
-🚧 Automatically reference version-specific Blender documentation and FAQs  
-🚧 Integration with Asset Store  
+## ✨ TL;DR
 
-## Installation
+- Instantly detects and highlights n-gons and topology issues  
+- ChatGPT / Claude / Gemini offer real-time improvement suggestions  
+- Zero-setup: just install the add-on — no external MCP server required  
 
-### To Blender
+---
 
-- Open Blender
-- Go to `Edit` > `Preferences` > `Get Extensions` > `Repositories` > `+` > `Add Remote Repository`
-- Add `https://xhiroga.github.io/blender-mcp-senpai/extensions/index.json`
-- Search `Blender Senpai` and install it
-- `Add-ons` > `Blender Senpai` > Enable it
+## 🚀 Features
 
-### To Claude
+| | Feature | Status |
+|---|---|---|
+| ✅ | **Auto n-gon Highlight** – instantly spot topology issues | Implemented |
+| ✅ | **AI Comments** – ChatGPT / Claude / Gemini suggest improvements | Implemented |
+| ✅ | **Zero Configuration** – works out-of-the-box, no external MCP server | Implemented |
+| 🚧 | Asset Store Integration | Planned |
+
+---
+
+## 📺 Demo
+
+[![Blender Senpai Demo](https://img.youtube.com/vi/4oX0ftZ07LE/0.jpg)](https://www.youtube.com/watch?v=4oX0ftZ07LE)
+
+---
+
+## 🛠️ Quick Start
 
 ```json
-{
-    "mcpServers": {
-        "blender-senpai": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "supergateway",
-                "--sse",
-                "http://localhost:13180/sse"
-            ]
-        }
-    }
-}
-```
 
-### To Dive
-
-```json
-{
-  "mcpServers": {
-    "blender-senpai": {
-      "transport": "sse",
-      "enabled": true,
-      "command": null,
-      "args": [],
-      "env": {},
-      "url": "http://localhost:13180/sse"
-    }
-  }
-}
-```
-
-## Development
-
-See [.github/pull_request_template.md](.github/pull_request_template.md).
-
-## Test
-
-```sh
-uv run python -m pytest
-```
-
-## Release
-
-```sh
-# Update version in `pyproject.toml`
-uv run --env-file .env build.py
-# Install extension to Blender and check if it works.
-git add docs/extensions/index.json pyproject.toml uv.lock
-./scripts/release.sh
 ```
