@@ -55,3 +55,17 @@
 ```json
 
 ```
+
+## 🔧 Development
+
+See [.github/pull_request_template.md](.github/pull_request_template.md).
+
+### Release
+
+```sh
+# Update version in `pyproject.toml`
+uv run --env-file .env build.py
+# Install extension to Blender and check if it works.
+git add docs/extensions/index.json pyproject.toml uv.lock
+./scripts/release.sh
+```
