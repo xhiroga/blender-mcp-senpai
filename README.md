@@ -21,7 +21,7 @@
 
 ---
 
-<h2 align="center">Feedback welcome! Feel free to open an [Issue](https://github.com/xhiroga/blender-mcp-senpai/issues) or join our [Discord](https://discord.gg/7z9HqgR8Bd)</h2>
+<h2 align="center">Feedback welcome! Feel free to open an <a href="https://github.com/xhiroga/blender-mcp-senpai/issues">Issue</a> or join our <a href="https://discord.gg/7z9HqgR8Bd">Discord</a></h2>
 
 ---
 
