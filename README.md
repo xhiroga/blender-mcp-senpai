@@ -52,6 +52,14 @@
 
 ## 🛠️ Quick Start
 
+### To Blender
+
+- Open Blender
+- Go to `Edit` > `Preferences` > `Get Extensions` > `Repositories` > `+` > `Add Remote Repository`
+- Add `https://xhiroga.github.io/blender-mcp-senpai/extensions/index.json`
+- Search `Blender Senpai` and install it
+- `Add-ons` > `Blender Senpai` > Enable it
+
 ### To Claude
 
 NOTE: After configuration, you need to restart the app. Especially on Windows, please terminate the process from Task Manager.
