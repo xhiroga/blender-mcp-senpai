@@ -14,10 +14,12 @@
     "@ai-sdk/openai": "^1.3.22",
     "@assistant-ui/react": "^0.10.24",
     "@assistant-ui/react-ai-sdk": "^0.10.14",
+    "@tailwindcss/typography": "^0.5.16",
     "ai": "^4.3.16",
     "next": "15.3.3",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
