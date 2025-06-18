@@ -1,13 +1,15 @@
 import asyncio
 import socket
 from logging import getLogger
+from pathlib import Path
 
-import gradio as gr
 import uvicorn
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
+from .api import router as api_router
 from .fast_mcp import get_sse_app
 from .log_config import configure
-from .webui import interface
 
 logger = getLogger(__name__)
 
@@ -47,15 +49,34 @@ class Server:
 
         self.port = self._get_port(self.port)
 
-        app = get_sse_app()
-        gradio_app = gr.mount_gradio_app(app, interface(self.locale), path="")
+        # Create main FastAPI app
+        app = FastAPI(title="Blender Senpai")
+        
+        # Add our chat API routes
+        app.include_router(api_router, prefix="/api")
+        
+        # Mount MCP SSE app
+        mcp_app = get_sse_app()
+        app.mount("/sse", mcp_app)
+        
+        # Serve static frontend files
+        frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "out"
+        if frontend_dist.exists():
+            app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
+            logger.info(f"Serving static frontend from {frontend_dist}")
+        else:
+            logger.warning(f"Frontend dist directory not found at {frontend_dist}")
+            # Create a simple fallback response
+            @app.get("/")
+            async def fallback():
+                return {"message": "Frontend not built. Please run 'pnpm build' in the frontend directory."}
 
         logger.info(
-            f"Starting FastAPI server with Gradio UI and SSE endpoint on {self.host}:{self.port}"
+            f"Starting FastAPI server with React UI and SSE endpoint on {self.host}:{self.port}"
         )
 
         config = uvicorn.Config(
-            gradio_app,
+            app,
             host=self.host,
             port=self.port,
             loop="asyncio",
