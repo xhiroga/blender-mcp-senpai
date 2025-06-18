@@ -26,6 +26,3 @@ dev = [
 addopts = "-vv --tb=short -s"
 pythonpath = ["src"]
 testpaths = ["tests"]
-
-[tool.uv.workspace]
-members = ["rag"]
