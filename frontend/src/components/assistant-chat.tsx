@@ -32,12 +32,16 @@ export function AssistantChat() {
   }, []);
 
   // Assistant-UI Runtime setup
+  // WORKAROUND: Using API route to enable AI SDK in static export
+  // See: https://github.com/vercel/ai/issues/5140
+  // In a normal Next.js app, you would use useChat() directly with server-side API keys
+  // But for static export, we pass the API key from client and use an API route handler
   const runtime = useChatRuntime({
     api: "/api/chat",
     body: {
       provider: settings.provider,
       model: settings.model,
-      apiKey: getApiKey(settings.provider),
+      apiKey: getApiKey(settings.provider), // WARNING: Passing API key from client side
     },
   });
 

@@ -3,10 +3,16 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 
+// WORKAROUND: API Route Handler for AI SDK in static export
+// This endpoint exists because AI SDK cannot run directly in the browser
+// In a normal Next.js app, this would be handled server-side with env vars
+// See: https://github.com/vercel/ai/issues/5140
 export async function POST(req: Request) {
   try {
     const { messages, provider, model, apiKey } = await req.json();
     
+    // WARNING: Receiving API key from client side - only safe because users provide their own keys
+    // In a production SaaS app, API keys should be stored server-side in env vars
     if (!apiKey) {
       return new Response('API key required', { status: 400 });
     }
