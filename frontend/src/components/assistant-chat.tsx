@@ -3,12 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { AssistantRuntimeProvider, ThreadPrimitive, ComposerPrimitive, MessagePrimitive } from "@assistant-ui/react";
 import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
-
-interface Model {
-  model: string;
-  provider: string;
-  default?: boolean;
-}
+import { AVAILABLE_MODELS } from "@/lib/models";
 
 interface Settings {
   provider: string;
@@ -23,7 +18,6 @@ export function AssistantChat() {
     model: "gpt-4o"
   });
   const [showSettings, setShowSettings] = useState(false);
-  const [availableModels, setAvailableModels] = useState<Model[]>([]);
   const [apiKeyInputs, setApiKeyInputs] = useState({
     openai: "",
     anthropic: "",
@@ -73,42 +67,6 @@ export function AssistantChat() {
     }
   }, []);
 
-  const updateAvailableModels = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      const response = await fetch('/api/models');
-      if (response.ok) {
-        const models = await response.json();
-        setAvailableModels(models);
-        
-        // Update current model if not available
-        if (!models.some((m: Model) => m.model === settings.model && m.provider === settings.provider)) {
-          const defaultModel = models.find((m: Model) => m.default) || models[0];
-          if (defaultModel) {
-            saveSettings({
-              ...settings,
-              model: defaultModel.model,
-              provider: defaultModel.provider,
-              apiKey: getApiKey(defaultModel.provider)
-            });
-          }
-        }
-      } else {
-        // Fallback to tutorial model if API fails
-        setAvailableModels([{ model: "tutorial", provider: "tutorial", default: true }]);
-      }
-    } catch (error) {
-      console.error('Error fetching models:', error);
-      // Fallback to tutorial model
-      setAvailableModels([{ model: "tutorial", provider: "tutorial", default: true }]);
-    }
-  }, [settings, getApiKey, saveSettings]);
-
-  useEffect(() => {
-    updateAvailableModels();
-  }, [settings.provider, updateAvailableModels]);
-
   const saveApiKey = async (provider: string, apiKey: string) => {
     if (typeof window === 'undefined') return;
     
@@ -117,7 +75,6 @@ export function AssistantChat() {
       const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
       delete keys[provider];
       localStorage.setItem("blender-senpai-api-keys", JSON.stringify(keys));
-      updateAvailableModels();
       return;
     }
 
@@ -187,9 +144,6 @@ export function AssistantChat() {
           saveSettings({ ...settings, apiKey });
         }
         
-        // Update available models
-        updateAvailableModels();
-        
         alert("API key verified and saved successfully!");
       } else {
         throw new Error(result.message);
@@ -223,7 +177,7 @@ export function AssistantChat() {
               }}
               className="w-full p-2 border rounded-md"
             >
-              {availableModels.map((model) => (
+              {AVAILABLE_MODELS.map((model) => (
                 <option 
                   key={`${model.provider}-${model.model}`}
                   value={JSON.stringify(model)}
