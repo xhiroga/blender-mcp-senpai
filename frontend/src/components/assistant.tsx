@@ -4,6 +4,25 @@ import { useState, useEffect, useCallback } from "react";
 import { AssistantRuntimeProvider, ThreadPrimitive, ComposerPrimitive, MessagePrimitive } from "@assistant-ui/react";
 import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { AVAILABLE_MODELS } from "@/lib/models";
+import Image from "next/image";
+
+// Helper function to get model icon components
+const getModelIcon = (provider: string) => {
+  const iconClass = "w-5 h-5";
+  
+  switch (provider) {
+    case "openai":
+      return <Image src="/openai.svg" alt="OpenAI" width={20} height={20} className={iconClass} />;
+    case "anthropic":
+      return <Image src="/anthropic.svg" alt="Anthropic" width={20} height={20} className={iconClass} />;
+    case "gemini":
+      return <Image src="/google.svg" alt="Google" width={20} height={20} className={iconClass} />;
+    case "tutorial":
+      return <span className="text-lg">📚</span>;
+    default:
+      return <span className="text-lg">🤖</span>;
+  }
+};
 
 interface Settings {
   provider: string;
@@ -18,6 +37,7 @@ export function Assistant() {
     model: "gpt-4o"
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [showModelSelector, setShowModelSelector] = useState(false);
   const [apiKeyInputs, setApiKeyInputs] = useState({
     openai: "",
     anthropic: "",
@@ -49,20 +69,57 @@ export function Assistant() {
     // Only run on client side
     if (typeof window === 'undefined') return;
     
-    // Load settings from localStorage
-    const savedSettings = localStorage.getItem("blender-senpai-settings");
-    if (savedSettings) {
-      setSettings(JSON.parse(savedSettings));
+    // Load API keys first
+    let savedKeys: { [key: string]: string } = {};
+    try {
+      const keysString = localStorage.getItem("blender-senpai-api-keys");
+      if (keysString) {
+        savedKeys = JSON.parse(keysString);
+        console.log('Loaded API keys:', Object.keys(savedKeys)); // Debug log
+      }
+    } catch (error) {
+      console.error('Error parsing saved API keys:', error);
+      savedKeys = {};
     }
-    
-    // Load API keys to input state
-    const savedKeys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
+
+    // Update API key inputs state
     setApiKeyInputs({
       openai: savedKeys.openai || "",
       anthropic: savedKeys.anthropic || "",
       gemini: savedKeys.gemini || ""
     });
+    
+    // Load settings from localStorage
+    const savedSettings = localStorage.getItem("blender-senpai-settings");
+    if (savedSettings) {
+      try {
+        const parsedSettings = JSON.parse(savedSettings);
+        // Update with current API key for the provider
+        const currentApiKey = savedKeys[parsedSettings.provider] || "";
+        setSettings({
+          ...parsedSettings,
+          apiKey: currentApiKey
+        });
+        console.log('Loaded settings:', parsedSettings.provider, 'API key exists:', !!currentApiKey); // Debug log
+      } catch (error) {
+        console.error('Error parsing saved settings:', error);
+      }
+    }
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (showModelSelector) {
+        setShowModelSelector(false);
+      }
+    };
+
+    if (showModelSelector) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showModelSelector]);
 
   const saveSettings = useCallback((newSettings: Settings) => {
     setSettings(newSettings);
@@ -79,51 +136,14 @@ export function Assistant() {
       const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
       delete keys[provider];
       localStorage.setItem("blender-senpai-api-keys", JSON.stringify(keys));
+      
+      // Update input field to reflect removal
+      setApiKeyInputs(prev => ({ ...prev, [provider]: "" }));
       return;
     }
 
     try {
-      // First, test API key by making a small request
-      const { createOpenAI } = await import("@ai-sdk/openai");
-      const { createAnthropic } = await import("@ai-sdk/anthropic");
-      const { createGoogleGenerativeAI } = await import("@ai-sdk/google");
-      const { streamText } = await import("ai");
-
-      let testModel;
-      let aiProvider;
-
-      switch (provider) {
-        case "openai":
-          aiProvider = createOpenAI({ apiKey });
-          testModel = aiProvider("gpt-4o-mini");
-          break;
-        case "anthropic":
-          aiProvider = createAnthropic({ apiKey });
-          testModel = aiProvider("claude-3-5-haiku-20241022");
-          break;
-        case "gemini":
-          aiProvider = createGoogleGenerativeAI({ apiKey });
-          testModel = aiProvider("gemini-1.5-flash");
-          break;
-        default:
-          throw new Error(`Unsupported provider: ${provider}`);
-      }
-
-      // Test with a simple completion
-      const stream = await streamText({
-        model: testModel,
-        messages: [{ role: "user", content: "Hi" }],
-        maxTokens: 5,
-      });
-
-      // Consume the stream to test the connection
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      for await (const _chunk of stream.textStream) {
-        // Just testing, don't need to do anything with the response
-        break;
-      }
-
-      // If test succeeds, save to backend
+      // Save to backend first (backend will validate the key format)
       const response = await fetch('/api/api-keys', {
         method: 'POST',
         headers: {
@@ -138,23 +158,23 @@ export function Assistant() {
       const result = await response.json();
       
       if (result.success) {
-        // Also save to localStorage for frontend use
+        // Save to localStorage for frontend use
         const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
         keys[provider] = apiKey;
         localStorage.setItem("blender-senpai-api-keys", JSON.stringify(keys));
         
-        // Update settings with new API key
+        // Update settings with new API key if this is the current provider
         if (settings.provider === provider) {
           saveSettings({ ...settings, apiKey });
         }
         
-        alert("API key verified and saved successfully!");
+        alert("API key saved successfully!");
       } else {
         throw new Error(result.message);
       }
     } catch (error) {
-      console.error('Error verifying API key:', error);
-      alert(`API Key verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error saving API key:', error);
+      alert(`Failed to save API key: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -181,49 +201,99 @@ export function Assistant() {
           </div>
         </div>
 
-        {/* Settings Toggle */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="w-full flex items-center gap-3 px-3 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            Settings
-          </button>
-        </div>
       </div>
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
-          <div className="flex items-center justify-center">
-            <select 
-              value={JSON.stringify({ model: settings.model, provider: settings.provider })}
-              onChange={(e) => {
-                const selected = JSON.parse(e.target.value);
-                saveSettings({ 
-                  ...settings, 
-                  model: selected.model, 
-                  provider: selected.provider,
-                  apiKey: getApiKey(selected.provider)
-                });
-              }}
-              className="bg-transparent text-gray-900 dark:text-white font-medium focus:outline-none"
-            >
-              {AVAILABLE_MODELS.map((model) => (
-                <option 
-                  key={`${model.provider}-${model.model}`}
-                  value={JSON.stringify(model)}
-                  className="bg-white dark:bg-gray-800"
+          <div className="flex items-center justify-between">
+            {/* Model Selector - Custom dropdown like assistant-ui */}
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowModelSelector(!showModelSelector);
+                }}
+                className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                {getModelIcon(settings.provider)}
+                <span>{settings.model}</span>
+                <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showModelSelector && (
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
                 >
-                  {model.model} ({model.provider})
-                </option>
-              ))}
-            </select>
+                  {AVAILABLE_MODELS.map((model) => {
+                    const hasApiKey = getApiKey(model.provider);
+                    const isDisabled = !hasApiKey && model.provider !== 'tutorial';
+                    const isSelected = model.model === settings.model && model.provider === settings.provider;
+                    
+                    return (
+                      <button
+                        key={`${model.provider}-${model.model}`}
+                        onClick={() => {
+                          if (!isDisabled) {
+                            saveSettings({ 
+                              ...settings, 
+                              model: model.model, 
+                              provider: model.provider,
+                              apiKey: getApiKey(model.provider)
+                            });
+                            setShowModelSelector(false);
+                          }
+                        }}
+                        disabled={isDisabled}
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                          isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                        } ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        {getModelIcon(model.provider)}
+                        <div className="flex-1">
+                          <div className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-900 dark:text-white'}`}>
+                            {model.model}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {model.provider.charAt(0).toUpperCase() + model.provider.slice(1)}
+                          </div>
+                        </div>
+                        {isSelected && (
+                          <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Right side controls */}
+            <div className="flex items-center gap-3">
+              {/* Settings */}
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                title="Settings"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+
+              {/* User Avatar */}
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">U</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -325,97 +395,140 @@ export function Assistant() {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Settings</h2>
-                <button
-                  onClick={() => setShowSettings(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop with blur effect like ChatGPT */}
+          <div 
+            className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm"
+            onClick={() => setShowSettings(false)}
+          />
+          
+          {/* Modal content */}
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg border border-gray-200 dark:border-gray-700">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Settings</h2>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* API Keys Section */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-4">API Keys</h3>
+                <div className="space-y-4">
+                  {/* OpenAI */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      {getModelIcon("openai")}
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        OpenAI
+                      </label>
+                      {getApiKey("openai") && (
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+                          Connected
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={apiKeyInputs.openai}
+                        onChange={(e) => setApiKeyInputs({ ...apiKeyInputs, openai: e.target.value })}
+                        placeholder="sk-..."
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                      />
+                      <button
+                        onClick={() => saveApiKey("openai", apiKeyInputs.openai)}
+                        className="px-3 py-2 text-sm bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-md transition-colors font-medium"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Anthropic */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      {getModelIcon("anthropic")}
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Anthropic
+                      </label>
+                      {getApiKey("anthropic") && (
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+                          Connected
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={apiKeyInputs.anthropic}
+                        onChange={(e) => setApiKeyInputs({ ...apiKeyInputs, anthropic: e.target.value })}
+                        placeholder="sk-ant-api03-..."
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                      />
+                      <button
+                        onClick={() => saveApiKey("anthropic", apiKeyInputs.anthropic)}
+                        className="px-3 py-2 text-sm bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-md transition-colors font-medium"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Gemini */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      {getModelIcon("gemini")}
+                      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Google Gemini
+                      </label>
+                      {getApiKey("gemini") && (
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
+                          Connected
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="password"
+                        value={apiKeyInputs.gemini}
+                        onChange={(e) => setApiKeyInputs({ ...apiKeyInputs, gemini: e.target.value })}
+                        placeholder="AIzaSy..."
+                        className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+                      />
+                      <button
+                        onClick={() => saveApiKey("gemini", apiKeyInputs.gemini)}
+                        className="px-3 py-2 text-sm bg-gray-900 hover:bg-gray-800 dark:bg-white dark:hover:bg-gray-100 text-white dark:text-gray-900 rounded-md transition-colors font-medium"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              {/* API Keys */}
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    OpenAI API Key
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={apiKeyInputs.openai}
-                      onChange={(e) => setApiKeyInputs({ ...apiKeyInputs, openai: e.target.value })}
-                      placeholder="sk-..."
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={() => saveApiKey("openai", apiKeyInputs.openai)}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Verify
-                    </button>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Anthropic API Key
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={apiKeyInputs.anthropic}
-                      onChange={(e) => setApiKeyInputs({ ...apiKeyInputs, anthropic: e.target.value })}
-                      placeholder="sk-ant-api03-..."
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={() => saveApiKey("anthropic", apiKeyInputs.anthropic)}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Verify
-                    </button>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Gemini API Key
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      value={apiKeyInputs.gemini}
-                      onChange={(e) => setApiKeyInputs({ ...apiKeyInputs, gemini: e.target.value })}
-                      placeholder="AIzaSy..."
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <button
-                      onClick={() => saveApiKey("gemini", apiKeyInputs.gemini)}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
-                    >
-                      Verify
-                    </button>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
-                  <button
-                    onClick={() => {
+              {/* Data Management */}
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Data</h3>
+                <button
+                  onClick={() => {
+                    if (confirm("Are you sure you want to clear all chat history? This action cannot be undone.")) {
                       localStorage.removeItem("blender-senpai-messages");
                       window.location.reload();
-                    }}
-                    className="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors"
-                  >
-                    Clear Chat History
-                  </button>
-                </div>
+                    }
+                  }}
+                  className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 font-medium"
+                >
+                  Clear all chat history
+                </button>
               </div>
             </div>
           </div>
