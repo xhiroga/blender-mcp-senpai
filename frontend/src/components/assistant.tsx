@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AssistantRuntimeProvider, ThreadPrimitive, ComposerPrimitive, MessagePrimitive } from "@assistant-ui/react";
-import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
+import { useDangerousInBrowserRuntime } from "@assistant-ui/react-edge";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import Image from "next/image";
 
@@ -62,19 +62,47 @@ export function Assistant() {
     return apiKeyStates[provider]?.configured ? apiKeyStates[provider].apiKey : "";
   }, [apiKeyStates]);
 
-  // Assistant-UI Runtime setup
-  // WORKAROUND: Using API route to enable AI SDK in static export
-  // See: https://github.com/vercel/ai/issues/5140
-  // In a normal Next.js app, you would use useChat() directly with server-side API keys
-  // But for static export, we use API route handler that fetches keys from backend keyring
-  const runtime = useChatRuntime({
-    api: "/api/chat",
-    body: {
-      provider: settings.provider,
-      model: settings.model,
-      // API key is now fetched server-side from keyring storage
+
+  // Assistant-UI Runtime setup with direct AI SDK integration
+  // WORKAROUND: GitHub issue #5140 - enables AI SDK with static export
+  const runtime = useDangerousInBrowserRuntime(useMemo(() => ({
+    model: async () => {
+      // Fetch API key from backend keyring storage
+      const apiKeyResponse = await fetch(`${window.location.origin}/api/api-keys/${settings.provider}`);
+      if (!apiKeyResponse.ok) {
+        throw new Error('API key not configured for provider');
+      }
+      
+      const { api_key: apiKey, configured } = await apiKeyResponse.json();
+      if (!configured || !apiKey) {
+        throw new Error('API key not configured for provider');
+      }
+
+      // Import AI SDK modules dynamically
+      let createProvider;
+      
+      switch (settings.provider) {
+        case 'openai':
+          const { createOpenAI } = await import('@ai-sdk/openai');
+          createProvider = () => createOpenAI({ apiKey });
+          break;
+        case 'anthropic':
+          const { createAnthropic } = await import('@ai-sdk/anthropic');
+          createProvider = () => createAnthropic({ apiKey });
+          break;
+        case 'gemini':
+          const { createGoogleGenerativeAI } = await import('@ai-sdk/google');
+          createProvider = () => createGoogleGenerativeAI({ apiKey });
+          break;
+        default:
+          throw new Error('Unsupported provider');
+      }
+
+      const provider = createProvider();
+      return provider(settings.model);
     },
-  });
+    temperature: 0.7,
+  }), [settings.provider, settings.model]));
 
   useEffect(() => {
     // Only run on client side
