@@ -1,33 +1,33 @@
-import json
-import uuid
 from logging import getLogger
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import List
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter
 from pydantic import BaseModel
 
-from .i18n import t
-from .llm import ModelConfig, Provider, completion_stream, model_configs
 from .repositories.api_key_repository import ApiKeyRepository
-from .repositories.history_repository import HistoryRepository
 
 logger = getLogger(__name__)
 
 router = APIRouter()
 
-
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-
-class ChatRequest(BaseModel):
-    message: str
-    history: List[ChatMessage] = []
-    provider: str
-    model: str
-    conversation_id: Optional[str] = None
+# Model configurations (moved from deleted llm.py)
+AVAILABLE_MODELS = [
+    # OpenAI models
+    {"provider": "openai", "model": "gpt-4o", "default": True},
+    {"provider": "openai", "model": "gpt-4o-mini", "default": False},
+    {"provider": "openai", "model": "gpt-4-turbo", "default": False},
+    {"provider": "openai", "model": "gpt-3.5-turbo", "default": False},
+    # Anthropic models  
+    {"provider": "anthropic", "model": "claude-3-5-sonnet-20241022", "default": True},
+    {"provider": "anthropic", "model": "claude-3-5-haiku-20241022", "default": False},
+    {"provider": "anthropic", "model": "claude-3-opus-20240229", "default": False},
+    # Google models
+    {"provider": "gemini", "model": "gemini-1.5-pro", "default": True},
+    {"provider": "gemini", "model": "gemini-1.5-flash", "default": False},
+    {"provider": "gemini", "model": "gemini-2.0-flash-exp", "default": False},
+    # Tutorial model
+    {"provider": "tutorial", "model": "tutorial", "default": True},
+]
 
 
 class ModelInfo(BaseModel):
@@ -58,7 +58,7 @@ async def get_available_models():
             provider=model["provider"],
             default=model.get("default", False)
         )
-        for model in model_configs
+        for model in AVAILABLE_MODELS
         if model["provider"] == "tutorial" or model["provider"] in providers
     ]
     
@@ -71,40 +71,18 @@ async def get_available_models():
 
 @router.post("/api-keys", response_model=ApiKeyResponse)
 async def save_api_key(request: ApiKeyRequest):
-    """Save and verify an API key"""
+    """Save an API key (validation is done on frontend)"""
     try:
-        from .types.api_key import ApiKey
-        import litellm
+        from .types_models.api_key import ApiKey
         
         api_key = ApiKey(request.api_key)
-        
-        # Test the API key by making a small request
-        default_model = next(
-            (m for m in model_configs if m["provider"] == request.provider and m.get("default")),
-            None
-        )
-        
-        if not default_model:
-            raise HTTPException(status_code=400, detail=f"No default model found for provider {request.provider}")
-        
-        model = f"{request.provider}/{default_model['model']}"
-        
-        # Test the API key
-        litellm.completion(
-            model=model,
-            api_key=api_key.reveal(),
-            messages=[{"role": "user", "content": "test"}],
-            max_tokens=5,
-        )
-        
-        # If test succeeds, save the key
         ApiKeyRepository.save(request.provider, api_key)
         
-        return ApiKeyResponse(success=True, message="API key verified and saved")
+        return ApiKeyResponse(success=True, message="API key saved successfully")
         
     except Exception as e:
-        logger.exception(f"Error verifying API key for {request.provider}")
-        return ApiKeyResponse(success=False, message=f"API key verification failed: {str(e)}")
+        logger.exception(f"Error saving API key for {request.provider}")
+        return ApiKeyResponse(success=False, message=f"Failed to save API key: {str(e)}")
 
 
 @router.get("/api-keys/{provider}")
@@ -120,74 +98,3 @@ async def get_api_key(provider: str):
             masked = "*" * len(key_str)
         return {"provider": provider, "api_key": masked, "configured": True}
     return {"provider": provider, "api_key": "", "configured": False}
-
-
-@router.post("/chat")
-async def chat_stream(request: ChatRequest):
-    """Stream chat completion"""
-    
-    async def generate():
-        try:
-            conversation_id = request.conversation_id or str(uuid.uuid4())
-            
-            # Save user message to history
-            HistoryRepository.create(conversation_id, "user", request.message)
-            
-            # Handle tutorial mode
-            if request.provider == "tutorial":
-                tutorial_msg = "Welcome to Blender Senpai! Please configure your API keys to start chatting with AI models."
-                HistoryRepository.create(conversation_id, "assistant", tutorial_msg)
-                yield f"data: {json.dumps({'content': tutorial_msg, 'done': True})}\n\n"
-                return
-            
-            # Get API key
-            api_key = ApiKeyRepository.get(request.provider)
-            if not api_key:
-                error_msg = f"API key required for {request.provider}"
-                HistoryRepository.create(conversation_id, "assistant", error_msg)
-                yield f"data: {json.dumps({'error': error_msg})}\n\n"
-                return
-            
-            # Convert request format to internal format
-            history = [(msg.content, "") for msg in request.history if msg.role == "user"]
-            if len(request.history) > 1:
-                for i in range(1, len(request.history), 2):
-                    if i < len(request.history) and request.history[i].role == "assistant":
-                        if history and len(history[-1]) == 2 and history[-1][1] == "":
-                            history[-1] = (history[-1][0], request.history[i].content)
-            
-            model = f"{request.provider}/{request.model}"
-            logger.info(f"Starting chat completion with model: {model}")
-            
-            tokens = []
-            async for token in completion_stream(
-                model=model,
-                api_key=api_key,
-                message=request.message,
-                history=history,
-                lang="en",  # TODO: get from request or settings
-            ):
-                tokens.append(token)
-                partial = "".join(tokens)
-                yield f"data: {json.dumps({'content': partial, 'done': False})}\n\n"
-            
-            # Save assistant response
-            assistant_message = "".join(tokens)
-            HistoryRepository.create(conversation_id, "assistant", assistant_message)
-            
-            yield f"data: {json.dumps({'content': assistant_message, 'done': True})}\n\n"
-            
-        except Exception as e:
-            logger.exception("Error in chat stream")
-            error_msg = f"Error: {str(e)}"
-            yield f"data: {json.dumps({'error': error_msg})}\n\n"
-    
-    return StreamingResponse(
-        generate(),
-        media_type="text/plain",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "Content-Type": "text/event-stream",
-        }
-    )

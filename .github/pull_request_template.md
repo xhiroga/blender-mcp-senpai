@@ -13,7 +13,7 @@
 ## ✅ Manual QA
 
 - [ ] `uv run -m pytest`
-- [ ] `uv run -m src.blender_senpai.server`
+- [ ] `cd frontend && pnpm build && cd .. && uv run -m src.blender_senpai.server`
   - [ ] `curl -N http://localhost:${PORT}/sse`
   - [ ] `npx @modelcontextprotocol/inspector@latest npx -y supergateway --sse http://localhost:${PORT}/sse`
   - [ ] `execute_code -> import bpy; bpy.ops.mesh.primitive_cube_add();` successfully executed TWICE

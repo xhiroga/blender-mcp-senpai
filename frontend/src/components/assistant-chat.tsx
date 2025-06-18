@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { streamText } from "ai";
+import { AssistantRuntimeProvider, ThreadPrimitive, ComposerPrimitive, MessagePrimitive } from "@assistant-ui/react";
+import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 
 interface Model {
   model: string;
@@ -18,15 +16,7 @@ interface Settings {
   model: string;
 }
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
-
-// Models are now fetched from backend
-
-export function ChatInterface() {
+export function AssistantChat() {
   const [settings, setSettings] = useState<Settings>({
     provider: "openai",
     apiKey: "",
@@ -34,13 +24,27 @@ export function ChatInterface() {
   });
   const [showSettings, setShowSettings] = useState(false);
   const [availableModels, setAvailableModels] = useState<Model[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [apiKeyInputs, setApiKeyInputs] = useState({
     openai: "",
     anthropic: "",
     gemini: ""
+  });
+
+  const getApiKey = useCallback((provider: string): string => {
+    if (typeof window === 'undefined') return "";
+    
+    const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
+    return keys[provider] || "";
+  }, []);
+
+  // Assistant-UI Runtime setup
+  const runtime = useChatRuntime({
+    api: "/api/chat",
+    body: {
+      provider: settings.provider,
+      model: settings.model,
+      apiKey: getApiKey(settings.provider),
+    },
   });
 
   useEffect(() => {
@@ -53,15 +57,6 @@ export function ChatInterface() {
       setSettings(JSON.parse(savedSettings));
     }
     
-    // Load messages from localStorage  
-    const savedMessages = localStorage.getItem("blender-senpai-messages");
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages).map((msg: {role: string; content: string; timestamp: string}) => ({
-        ...msg,
-        timestamp: new Date(msg.timestamp)
-      })));
-    }
-    
     // Load API keys to input state
     const savedKeys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
     setApiKeyInputs({
@@ -69,6 +64,13 @@ export function ChatInterface() {
       anthropic: savedKeys.anthropic || "",
       gemini: savedKeys.gemini || ""
     });
+  }, []);
+
+  const saveSettings = useCallback((newSettings: Settings) => {
+    setSettings(newSettings);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("blender-senpai-settings", JSON.stringify(newSettings));
+    }
   }, []);
 
   const updateAvailableModels = useCallback(async () => {
@@ -101,18 +103,11 @@ export function ChatInterface() {
       // Fallback to tutorial model
       setAvailableModels([{ model: "tutorial", provider: "tutorial", default: true }]);
     }
-  }, [settings]);
+  }, [settings, getApiKey, saveSettings]);
 
   useEffect(() => {
     updateAvailableModels();
-  }, [settings.provider, updateAvailableModels]); // Re-update when provider changes
-
-  const saveSettings = (newSettings: Settings) => {
-    setSettings(newSettings);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem("blender-senpai-settings", JSON.stringify(newSettings));
-    }
-  };
+  }, [settings.provider, updateAvailableModels]);
 
   const saveApiKey = async (provider: string, apiKey: string) => {
     if (typeof window === 'undefined') return;
@@ -128,6 +123,11 @@ export function ChatInterface() {
 
     try {
       // First, test API key by making a small request
+      const { createOpenAI } = await import("@ai-sdk/openai");
+      const { createAnthropic } = await import("@ai-sdk/anthropic");
+      const { createGoogleGenerativeAI } = await import("@ai-sdk/google");
+      const { streamText } = await import("ai");
+
       let testModel;
       let aiProvider;
 
@@ -197,144 +197,6 @@ export function ChatInterface() {
     } catch (error) {
       console.error('Error verifying API key:', error);
       alert(`API Key verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const getApiKey = (provider: string): string => {
-    if (typeof window === 'undefined') return "";
-    
-    const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
-    return keys[provider] || "";
-  };
-
-  const saveMessages = (msgs: Message[]) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem("blender-senpai-messages", JSON.stringify(msgs));
-    }
-  };
-
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: Message = {
-      role: "user",
-      content: input.trim(),
-      timestamp: new Date()
-    };
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    setInput("");
-    setIsLoading(true);
-
-    try {
-      if (settings.provider === "tutorial") {
-        const tutorialMessage: Message = {
-          role: "assistant",
-          content: "Welcome to Blender Senpai! Please configure your API keys in the settings to start chatting with AI models.",
-          timestamp: new Date()
-        };
-        const finalMessages = [...newMessages, tutorialMessage];
-        setMessages(finalMessages);
-        saveMessages(finalMessages);
-      } else {
-        // Get API key for current provider
-        const apiKey = getApiKey(settings.provider);
-        if (!apiKey) {
-          throw new Error(`API key not configured for ${settings.provider}`);
-        }
-
-        // Create AI provider
-        let aiProvider;
-        let model;
-
-        switch (settings.provider) {
-          case "openai":
-            aiProvider = createOpenAI({ apiKey });
-            model = aiProvider(settings.model);
-            break;
-          case "anthropic":
-            aiProvider = createAnthropic({ apiKey });
-            model = aiProvider(settings.model);
-            break;
-          case "gemini":
-            aiProvider = createGoogleGenerativeAI({ apiKey });
-            model = aiProvider(settings.model);
-            break;
-          default:
-            throw new Error(`Unsupported provider: ${settings.provider}`);
-        }
-
-        // Prepare conversation history for AI SDK
-        const aiMessages = messages.map(msg => ({
-          role: msg.role as "user" | "assistant",
-          content: msg.content
-        }));
-        aiMessages.push({
-          role: "user",
-          content: userMessage.content
-        });
-
-        // Create assistant message placeholder
-        const assistantMessage: Message = {
-          role: "assistant",
-          content: "",
-          timestamp: new Date()
-        };
-
-        // Add the assistant message to state (will be updated as we stream)
-        const messagesWithAssistant = [...newMessages, assistantMessage];
-        setMessages(messagesWithAssistant);
-
-        // Stream the response
-        const stream = await streamText({
-          model,
-          messages: aiMessages,
-          temperature: 0.7,
-        });
-
-        let assistantContent = "";
-        for await (const chunk of stream.textStream) {
-          assistantContent += chunk;
-          
-          // Update the assistant message in state
-          setMessages(prevMessages => {
-            const updated = [...prevMessages];
-            updated[updated.length - 1] = {
-              ...updated[updated.length - 1],
-              content: assistantContent
-            };
-            return updated;
-          });
-        }
-
-        // Save final messages
-        const finalMessages = [...newMessages, {
-          role: "assistant" as const,
-          content: assistantContent,
-          timestamp: new Date()
-        }];
-        saveMessages(finalMessages);
-      }
-    } catch (error) {
-      console.error("Error sending message:", error);
-      const errorMessage: Message = {
-        role: "assistant",
-        content: `Error: ${error instanceof Error ? error.message : "Unknown error occurred"}`,
-        timestamp: new Date()
-      };
-      const finalMessages = [...newMessages, errorMessage];
-      setMessages(finalMessages);
-      saveMessages(finalMessages);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const clearMessages = () => {
-    setMessages([]);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem("blender-senpai-messages");
     }
   };
 
@@ -440,7 +302,10 @@ export function ChatInterface() {
 
           <div className="mt-6">
             <button
-              onClick={clearMessages}
+              onClick={() => {
+                localStorage.removeItem("blender-senpai-messages");
+                window.location.reload(); // Simple way to clear chat
+              }}
               className="w-full p-2 bg-red-500 text-white rounded-md hover:bg-red-600"
             >
               Clear Chat History
@@ -470,62 +335,46 @@ export function ChatInterface() {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center text-gray-500 mt-8">
-              <p>Welcome to Blender Senpai!</p>
-              <p className="text-sm mt-2">Configure your API keys in settings and start chatting.</p>
-            </div>
-          )}
-          {messages.map((message, index) => (
-            <div
-              key={index}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
-            >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  message.role === "user"
-                    ? "bg-blue-500 text-white"
-                    : "bg-white border"
-                }`}
-              >
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {message.timestamp.toLocaleTimeString()}
-                </p>
+        {/* Assistant UI Thread */}
+        <div className="flex-1">
+          <AssistantRuntimeProvider runtime={runtime}>
+            <ThreadPrimitive.Root className="h-full flex flex-col">
+              <ThreadPrimitive.Viewport className="flex-1 overflow-y-auto p-4">
+                <ThreadPrimitive.Messages 
+                  components={{
+                    UserMessage: () => (
+                      <div className="flex justify-end mb-4">
+                        <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-blue-500 text-white">
+                          <MessagePrimitive.Content />
+                        </div>
+                      </div>
+                    ),
+                    AssistantMessage: () => (
+                      <div className="flex justify-start mb-4">
+                        <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-lg bg-white border">
+                          <MessagePrimitive.Content />
+                        </div>
+                      </div>
+                    ),
+                  }}
+                />
+              </ThreadPrimitive.Viewport>
+              <ThreadPrimitive.ScrollToBottom />
+              <div className="p-4 border-t">
+                <ComposerPrimitive.Root>
+                  <div className="flex space-x-2">
+                    <ComposerPrimitive.Input 
+                      placeholder="Type your message..."
+                      className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <ComposerPrimitive.Send className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50">
+                      Send!
+                    </ComposerPrimitive.Send>
+                  </div>
+                </ComposerPrimitive.Root>
               </div>
-            </div>
-          ))}
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-white border px-4 py-2 rounded-lg">
-                <p className="text-sm">Thinking...</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Input */}
-        <div className="bg-white border-t p-4">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="Type your message..."
-              className="flex-1 p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
-            >
-              Send
-            </button>
-          </div>
+            </ThreadPrimitive.Root>
+          </AssistantRuntimeProvider>
         </div>
       </div>
     </div>

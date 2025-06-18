@@ -3,12 +3,11 @@ name = "blender-senpai"
 version = "0.3.3"
 requires-python = ">=3.11,<3.12"
 dependencies = [
-    "gradio>=5.29.0",
+    "fastapi>=0.115.13",
     "keyring>=25.6.0",
-    "litellm>=1.67.5",
     "mcp>=1.7.1",
     "pydantic>=2.11.3",
-    "pywin32==310; sys_platform == 'win32'"
+    "pywin32==310; sys_platform == 'win32'",
 ]
 
 [dependency-groups]
