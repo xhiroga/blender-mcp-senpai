@@ -40,14 +40,24 @@ async def save_api_key(request: ApiKeyRequest):
 
 @router.get("/api-keys/{provider}")
 async def get_api_key(provider: str):
-    """Get API key for a provider (returns masked version)"""
+    """Get API key for a provider"""
     api_key = ApiKeyRepository.get(provider)
     if api_key:
-        key_str = api_key.reveal()
-        # Mask the key for security
-        if len(key_str) > 8:
-            masked = key_str[:4] + "*" * (len(key_str) - 8) + key_str[-4:]
-        else:
-            masked = "*" * len(key_str)
-        return {"provider": provider, "api_key": masked, "configured": True}
+        return {"provider": provider, "api_key": api_key.reveal(), "configured": True}
     return {"provider": provider, "api_key": "", "configured": False}
+
+
+@router.get("/api-keys")
+async def get_all_api_keys():
+    """Get all configured API keys"""
+    providers = ["openai", "anthropic", "gemini"]
+    result = {}
+    
+    for provider in providers:
+        api_key = ApiKeyRepository.get(provider)
+        if api_key:
+            result[provider] = {"api_key": api_key.reveal(), "configured": True}
+        else:
+            result[provider] = {"api_key": "", "configured": False}
+    
+    return result

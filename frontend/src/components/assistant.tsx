@@ -6,6 +6,14 @@ import { useChatRuntime } from "@assistant-ui/react-ai-sdk";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import Image from "next/image";
 
+// Helper function to mask API keys for display
+const maskApiKey = (apiKey: string): string => {
+  if (!apiKey || apiKey.length <= 8) {
+    return "*".repeat(apiKey.length || 8);
+  }
+  return apiKey.slice(0, 4) + "*".repeat(apiKey.length - 8) + apiKey.slice(-4);
+};
+
 // Helper function to get model icon components
 const getModelIcon = (provider: string) => {
   const iconClass = "w-5 h-5";
@@ -43,25 +51,28 @@ export function Assistant() {
     anthropic: "",
     gemini: ""
   });
+  const [apiKeyStates, setApiKeyStates] = useState<{[key: string]: {configured: boolean, apiKey: string}}>({
+    openai: { configured: false, apiKey: "" },
+    anthropic: { configured: false, apiKey: "" },
+    gemini: { configured: false, apiKey: "" }
+  });
 
   const getApiKey = useCallback((provider: string): string => {
-    if (typeof window === 'undefined') return "";
-    
-    const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
-    return keys[provider] || "";
-  }, []);
+    // Return the actual API key if configured
+    return apiKeyStates[provider]?.configured ? apiKeyStates[provider].apiKey : "";
+  }, [apiKeyStates]);
 
   // Assistant-UI Runtime setup
   // WORKAROUND: Using API route to enable AI SDK in static export
   // See: https://github.com/vercel/ai/issues/5140
   // In a normal Next.js app, you would use useChat() directly with server-side API keys
-  // But for static export, we pass the API key from client and use an API route handler
+  // But for static export, we use API route handler that fetches keys from backend keyring
   const runtime = useChatRuntime({
     api: "/api/chat",
     body: {
       provider: settings.provider,
       model: settings.model,
-      apiKey: getApiKey(settings.provider), // WARNING: Passing API key from client side
+      // API key is now fetched server-side from keyring storage
     },
   });
 
@@ -69,42 +80,50 @@ export function Assistant() {
     // Only run on client side
     if (typeof window === 'undefined') return;
     
-    // Load API keys first
-    let savedKeys: { [key: string]: string } = {};
-    try {
-      const keysString = localStorage.getItem("blender-senpai-api-keys");
-      if (keysString) {
-        savedKeys = JSON.parse(keysString);
-        console.log('Loaded API keys:', Object.keys(savedKeys)); // Debug log
+    // Load API key states from backend
+    const loadApiKeyStates = async () => {
+      try {
+        const response = await fetch('/api/api-keys');
+        if (response.ok) {
+          const keyStates = await response.json();
+          console.log('Loaded API key states from backend:', keyStates);
+          
+          // Update API key states
+          setApiKeyStates({
+            openai: { configured: keyStates.openai?.configured || false, apiKey: keyStates.openai?.api_key || "" },
+            anthropic: { configured: keyStates.anthropic?.configured || false, apiKey: keyStates.anthropic?.api_key || "" },
+            gemini: { configured: keyStates.gemini?.configured || false, apiKey: keyStates.gemini?.api_key || "" }
+          });
+          
+          // Update input fields with masked keys for display
+          setApiKeyInputs({
+            openai: keyStates.openai?.api_key ? maskApiKey(keyStates.openai.api_key) : "",
+            anthropic: keyStates.anthropic?.api_key ? maskApiKey(keyStates.anthropic.api_key) : "",
+            gemini: keyStates.gemini?.api_key ? maskApiKey(keyStates.gemini.api_key) : ""
+          });
+        }
+      } catch (error) {
+        console.error('Error loading API key states:', error);
       }
-    } catch (error) {
-      console.error('Error parsing saved API keys:', error);
-      savedKeys = {};
-    }
-
-    // Update API key inputs state
-    setApiKeyInputs({
-      openai: savedKeys.openai || "",
-      anthropic: savedKeys.anthropic || "",
-      gemini: savedKeys.gemini || ""
-    });
+    };
     
-    // Load settings from localStorage
+    // Load settings from localStorage (only model preferences, not API keys)
     const savedSettings = localStorage.getItem("blender-senpai-settings");
     if (savedSettings) {
       try {
         const parsedSettings = JSON.parse(savedSettings);
-        // Update with current API key for the provider
-        const currentApiKey = savedKeys[parsedSettings.provider] || "";
         setSettings({
-          ...parsedSettings,
-          apiKey: currentApiKey
+          provider: parsedSettings.provider || "openai",
+          model: parsedSettings.model || "gpt-4o",
+          apiKey: "" // Always empty since we don't store keys in localStorage anymore
         });
-        console.log('Loaded settings:', parsedSettings.provider, 'API key exists:', !!currentApiKey); // Debug log
+        console.log('Loaded settings:', parsedSettings.provider, parsedSettings.model);
       } catch (error) {
         console.error('Error parsing saved settings:', error);
       }
     }
+    
+    loadApiKeyStates();
   }, []);
 
   // Close dropdown when clicking outside
@@ -128,22 +147,22 @@ export function Assistant() {
     }
   }, []);
 
-  const saveApiKey = async (provider: string, apiKey: string) => {
+  const saveApiKey = async (provider: string, inputValue: string) => {
     if (typeof window === 'undefined') return;
     
-    if (!apiKey.trim()) {
-      // Just remove the key if empty
-      const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
-      delete keys[provider];
-      localStorage.setItem("blender-senpai-api-keys", JSON.stringify(keys));
-      
-      // Update input field to reflect removal
-      setApiKeyInputs(prev => ({ ...prev, [provider]: "" }));
+    if (!inputValue.trim()) {
+      alert("Please enter an API key");
       return;
     }
+    
+    // If the input value is masked (contains asterisks), use the stored API key
+    // Otherwise, use the new input value
+    const apiKey = inputValue.includes("*") && apiKeyStates[provider]?.apiKey 
+      ? apiKeyStates[provider].apiKey 
+      : inputValue;
 
     try {
-      // Save to backend first (backend will validate the key format)
+      // Save to backend using Keyring
       const response = await fetch('/api/api-keys', {
         method: 'POST',
         headers: {
@@ -158,17 +177,27 @@ export function Assistant() {
       const result = await response.json();
       
       if (result.success) {
-        // Save to localStorage for frontend use
-        const keys = JSON.parse(localStorage.getItem("blender-senpai-api-keys") || "{}");
-        keys[provider] = apiKey;
-        localStorage.setItem("blender-senpai-api-keys", JSON.stringify(keys));
-        
-        // Update settings with new API key if this is the current provider
-        if (settings.provider === provider) {
-          saveSettings({ ...settings, apiKey });
+        // Reload API key states from backend
+        const statesResponse = await fetch('/api/api-keys');
+        if (statesResponse.ok) {
+          const keyStates = await statesResponse.json();
+          
+          // Update API key states
+          setApiKeyStates({
+            openai: { configured: keyStates.openai?.configured || false, apiKey: keyStates.openai?.api_key || "" },
+            anthropic: { configured: keyStates.anthropic?.configured || false, apiKey: keyStates.anthropic?.api_key || "" },
+            gemini: { configured: keyStates.gemini?.configured || false, apiKey: keyStates.gemini?.api_key || "" }
+          });
+          
+          // Update input fields with masked keys for display
+          setApiKeyInputs({
+            openai: keyStates.openai?.api_key ? maskApiKey(keyStates.openai.api_key) : "",
+            anthropic: keyStates.anthropic?.api_key ? maskApiKey(keyStates.anthropic.api_key) : "",
+            gemini: keyStates.gemini?.api_key ? maskApiKey(keyStates.gemini.api_key) : ""
+          });
         }
         
-        alert("API key saved successfully!");
+        alert("API key saved successfully and stored securely!");
       } else {
         throw new Error(result.message);
       }
@@ -215,7 +244,7 @@ export function Assistant() {
                   e.stopPropagation();
                   setShowModelSelector(!showModelSelector);
                 }}
-                className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-w-48"
               >
                 {getModelIcon(settings.provider)}
                 <span>{settings.model}</span>
@@ -228,7 +257,7 @@ export function Assistant() {
               {showModelSelector && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
-                  className="absolute top-full left-0 mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+                  className="absolute top-full left-0 mt-1 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
                 >
                   {AVAILABLE_MODELS.map((model) => {
                     const hasApiKey = getApiKey(model.provider);
@@ -258,9 +287,6 @@ export function Assistant() {
                         <div className="flex-1">
                           <div className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-900 dark:text-white'}`}>
                             {model.model}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {model.provider.charAt(0).toUpperCase() + model.provider.slice(1)}
                           </div>
                         </div>
                         {isSelected && (
@@ -430,7 +456,7 @@ export function Assistant() {
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         OpenAI
                       </label>
-                      {getApiKey("openai") && (
+                      {apiKeyStates.openai?.configured && (
                         <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
                           Connected
                         </span>
@@ -460,7 +486,7 @@ export function Assistant() {
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Anthropic
                       </label>
-                      {getApiKey("anthropic") && (
+                      {apiKeyStates.anthropic?.configured && (
                         <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
                           Connected
                         </span>
@@ -490,7 +516,7 @@ export function Assistant() {
                       <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Google Gemini
                       </label>
-                      {getApiKey("gemini") && (
+                      {apiKeyStates.gemini?.configured && (
                         <span className="text-xs px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 rounded-full">
                           Connected
                         </span>
@@ -521,7 +547,7 @@ export function Assistant() {
                 <button
                   onClick={() => {
                     if (confirm("Are you sure you want to clear all chat history? This action cannot be undone.")) {
-                      localStorage.removeItem("blender-senpai-messages");
+                      // Clear chat history (note: chat history is now handled by assistant-ui runtime)
                       window.location.reload();
                     }
                   }}

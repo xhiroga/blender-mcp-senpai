@@ -9,12 +9,17 @@ import { streamText } from 'ai';
 // See: https://github.com/vercel/ai/issues/5140
 export async function POST(req: Request) {
   try {
-    const { messages, provider, model, apiKey } = await req.json();
+    const { messages, provider, model } = await req.json();
     
-    // WARNING: Receiving API key from client side - only safe because users provide their own keys
-    // In a production SaaS app, API keys should be stored server-side in env vars
-    if (!apiKey) {
-      return new Response('API key required', { status: 400 });
+    // Fetch API key from backend keyring storage
+    const apiKeyResponse = await fetch(`${req.headers.get('origin')}/api/api-keys/${provider}`);
+    if (!apiKeyResponse.ok) {
+      return new Response('API key not configured for provider', { status: 400 });
+    }
+    
+    const { api_key: apiKey, configured } = await apiKeyResponse.json();
+    if (!configured || !apiKey) {
+      return new Response('API key not configured for provider', { status: 400 });
     }
 
     // Create AI provider
