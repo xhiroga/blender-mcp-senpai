@@ -12,22 +12,9 @@ Python内部にデータを持つのはメンテナンス性が低いので見�
 ### 技術選定
 
 このリポジトリの価値は、Blenderの言語化にある。チャットUIはPlug and Playの電池の役割。  
-ライブラリとしてはGradioを選定した。これはPythonのみでUIをホストする際に相性が良いと考えたため。  
-Pythonにおけるその他の選択肢としては、Streamlit や Chinlit がある。更新頻度と検索のしやすさを考えてGradioを選定した。  
+フロントエンドには、利用者数が多くエコシステムが整っているAI SDK + assistant-ui を選定した。ただし、Blender拡張に同梱するためにStatic export が必須となる。
 
-JS/TSのUIライブラリを用いてフロントエンドをビルドし、それを Starlette でホストする選択肢もある。  
-これはBlender側とチャット側の通信経路をMCPに限定する意味でも積極的に検討したい。  
-
-ライブラリとして利用できそうなのは、AI SDK, LangChain Agent Chat UI, assistant-ui など。  
-特にAI SDK + assistant-ui が良さそうだが、Static export した状態で AI SDKを利用できないのでしばらく静観。
-
-参考: <https://github.com/vercel/ai/issues/5140>
-
-### データの流れ
-
-まずは [Managing State](https://www.gradio.app/guides/state-in-blocks) を参照。  
-コンポーネント側に状態を閉じ込め、イベントリスナーは純粋関数で書きたかったが、ページのロード時のStateの初期化で最新のDBの値を取得することが難しかった。  
-代替案として、永続化されているデータのみイベントリスナーから直接参照している。
+そのため、チャットAPIとの通信には工夫が必要となる。参考: <https://github.com/vercel/ai/issues/5140>
 
 ### 永続化
 

@@ -1,1 +1,2 @@
 @.rules
+@ADR.ja.md
