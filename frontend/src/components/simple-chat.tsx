@@ -1,43 +1,27 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { AVAILABLE_MODELS } from "@/lib/models";
+import { AnthropicProvider, createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI, GoogleGenerativeAIProvider } from "@ai-sdk/google";
+import { createOpenAI, OpenAIProvider } from "@ai-sdk/openai";
+import { useChat } from "@ai-sdk/react";
 import {
   AssistantRuntimeProvider,
-  ThreadPrimitive,
   ComposerPrimitive,
   MessagePrimitive,
+  ThreadPrimitive,
 } from "@assistant-ui/react";
-import { useDangerousInBrowserRuntime } from "@assistant-ui/react-edge";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { AVAILABLE_MODELS } from "@/lib/models";
-import Image from "next/image";
-import type { Tool as AITool } from "ai";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp";
+import type { LanguageModelV1, Tool } from "ai";
+import {
+  experimental_createMCPClient as createMCPClient,
+  streamText,
+} from "ai";
+import { useCallback, useEffect, useState } from "react";
+import { ModelIcon } from "./model-icon";
 
-const convertMCPToolsToAssistantUI = (mcpTools: Record<string, AITool>) => {
-  console.log("🔧 Converting MCP tools, input:", mcpTools);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const convertedTools: Record<string, any> = {};
-
-  for (const [name, tool] of Object.entries(mcpTools)) {
-    console.log(`🔧 Converting tool ${name}:`, tool);
-    convertedTools[name] = {
-      type: "function",
-      description: tool.description || "",
-      parameters: tool.parameters,
-      execute: tool.execute,
-    };
-    console.log(`🔧 Converted tool ${name}:`, convertedTools[name]);
-  }
-
-  console.log("🔧 Final converted tools:", convertedTools);
-  return convertedTools;
-};
-
-interface Settings {
-  provider: string;
-  model: string;
+interface Tools {
+  [key: string]: Tool;
 }
 
 interface ApiKey {
@@ -48,25 +32,21 @@ interface ApiKeys {
   [provider: string]: ApiKey;
 }
 
-const getModelIcon = (provider: string) => {
-  const iconMap: Record<string, { src: string; alt: string }> = {
-    openai: { src: "/openai.svg", alt: "OpenAI" },
-    anthropic: { src: "/anthropic.svg", alt: "Anthropic" },
-    gemini: { src: "/google.svg", alt: "Google" },
-  };
+interface Providers {
+  openai: OpenAIProvider | undefined;
+  anthropic: AnthropicProvider | undefined;
+  gemini: GoogleGenerativeAIProvider | undefined;
+}
 
-  if (iconMap[provider]) {
-    const { src, alt } = iconMap[provider]!;
-    return <Image src={src} alt={alt} width={20} height={20} className="w-5 h-5" />;
-  }
-  return <span className="text-lg">🤖</span>;
-};
+const mcpClient = await createMCPClient({
+  transport: new StreamableHTTPClientTransport({
+    url: `${window.location.origin}/mcp/mcp`,
+  }),  
+});  
 
 export function SimpleChat() {
-  const [selectedModel, setSelectedModel] = useState<Settings>({
-    provider: "openai",
-    model: "gpt-4o",
-  });
+  const [mcpTools, setMcpTools] = useState<Tools>({});
+  const [languageModel, setLanguageModel] = useState<LanguageModelV1 | undefined>(undefined);
   const [showSettings, setShowSettings] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [apiKeyInputs, setApiKeyInputs] = useState({
@@ -79,163 +59,93 @@ export function SimpleChat() {
     anthropic: { apiKey: "" },
     gemini: { apiKey: "" },
   });
-  const [mcpTools, setMcpTools] = useState<Record<string, AITool>>({});
-  const [availableModels, setAvailableModels] = useState<typeof AVAILABLE_MODELS>([]);
+  const [availableModels, setAvailableModels] = useState<
+    typeof AVAILABLE_MODELS
+  >([]);
+  const [providers, setProviders] = useState<Providers>({
+    openai: undefined,
+    anthropic: undefined,
+    gemini: undefined,
+  });
 
-  // Intercept fetch to log LLM requests
+
   useEffect(() => {
-    const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const [url, options] = args;
-
-      // Check if this is an LLM API call
-      if (
-        typeof url === "string" &&
-        (url.includes("openai.com") ||
-          url.includes("anthropic.com") ||
-          url.includes("googleapis.com"))
-      ) {
-        console.log("📡 LLM API Request:", url);
-        console.log("📡 Request options:", options);
-
-        if (options?.body) {
-          try {
-            const body = JSON.parse(options.body as string);
-            console.log("📡 Request body:", body);
-            console.log(
-              "📡 Tools in request:",
-              body.tools ? Object.keys(body.tools) : "No tools"
-            );
-          } catch (error) {
-            console.log("📡 Request body (raw):", options.body);
-            console.log("📡 JSON parse error:", error);
-          }
-        }
-      }
-
-      const response = await originalFetch(...args);
-
-      if (
-        typeof url === "string" &&
-        (url.includes("openai.com") ||
-          url.includes("anthropic.com") ||
-          url.includes("googleapis.com"))
-      ) {
-        console.log("📡 LLM API Response status:", response.status);
-      }
-
-      return response;
+    const loadTools = async () => {
+      const tools = await mcpClient.tools();
+      setMcpTools(tools);
     };
-
-    return () => {
-      window.fetch = originalFetch;
-    };
+    loadTools();
   }, []);
 
-  // Load MCP tools on component mount
-  useEffect(() => {
-    const loadMcpTools = async () => {
-      try {
-        console.log("🔍 Starting MCP client creation...");
-        const { experimental_createMCPClient } = await import("ai");
-        console.log("🔍 MCP client import successful");
-
-        const mcpClient = await experimental_createMCPClient({
-          transport: {
-            type: "sse",
-            url: `${window.location.origin}/sse`,
-          },
-        });
-        console.log("🔍 MCP client created successfully:", mcpClient);
-
-        const tools = await mcpClient.tools();
-        console.log("🛠️ MCP Tools loaded for AI:", Object.keys(tools));
-        console.log("🔍 Full MCP tools data:", tools);
-        setMcpTools(tools);
-      } catch (error) {
-        console.error("❌ Failed to load MCP tools:", error);
-        setMcpTools({});
-      }
-    };
-
-    loadMcpTools();
-  }, []);
-
-  const getModel = useCallback(() => {
-    const apiKey = apiKeys[selectedModel.provider]?.apiKey;
-    if (!apiKey) {
-      throw new Error(`API key not configured for provider: ${selectedModel.provider}`);
-    }
-
-    switch (selectedModel.provider) {
-      case "openai":
-        return createOpenAI({ apiKey })(selectedModel.model);
-      case "anthropic":
-        return createAnthropic({ apiKey })(selectedModel.model);
-      case "gemini":
-        return createGoogleGenerativeAI({ apiKey })(selectedModel.model);
-      default:
-        throw new Error("Unsupported provider");
-    }
-  }, [apiKeys,selectedModel.provider, selectedModel.model]);
-
-  const runtime = useDangerousInBrowserRuntime(
-    useMemo(() => {
-      console.log("🚀 Creating runtime with mcpTools:", Object.keys(mcpTools));
-      const convertedTools = convertMCPToolsToAssistantUI(mcpTools);
-      
-      return {
-        model: () => getModel(),
-        tools: convertedTools,
-        temperature: 0.7,
-        maxSteps: 5,
-      };
-    }, [getModel, mcpTools])
-  );
-
-  useEffect(() => {
+  useEffect(() => {  
     const loadApiKeys = async () => {
       try {
         const response = await fetch("/api/api-keys");
         if (response.ok) {
           const data = await response.json();
           console.log("Loaded API keys from backend:", data);
-          
           const transformedData: ApiKeys = {};
           for (const [provider, state] of Object.entries(data)) {
             transformedData[provider] = {
               apiKey: (state as { api_key: string }).api_key || "",
             };
           }
-          
+
           setApiKeys(transformedData);
         }
       } catch (error) {
         console.error("Error loading API keys:", error);
       }
     };
-
     loadApiKeys();
   }, []);
 
   useEffect(() => {
+    const newProviders: Providers = {
+      openai: undefined,
+      anthropic: undefined,
+      gemini: undefined,
+    };
+
+    if (apiKeys.openai?.apiKey) {
+      newProviders.openai = createOpenAI({ apiKey: apiKeys.openai.apiKey });
+    }
+    if (apiKeys.anthropic?.apiKey) {
+      newProviders.anthropic = createAnthropic({ apiKey: apiKeys.anthropic.apiKey });
+    }
+    if (apiKeys.gemini?.apiKey) {
+      newProviders.gemini = createGoogleGenerativeAI({ apiKey: apiKeys.gemini.apiKey });
+    }
+
+    setProviders(newProviders);
+  }, [apiKeys]);
+
+  useEffect(() => {
     const updateAvailableModels = () => {
-      const available = AVAILABLE_MODELS.filter(model => {
+      const available = AVAILABLE_MODELS.filter((model) => {
         const hasApiKey = apiKeys[model.provider]?.apiKey;
         return hasApiKey && hasApiKey.length > 0;
       });
-      
-      console.log("Available models updated:", available.map(m => `${m.provider}:${m.model}`));
+
+      console.log(
+        "Available models updated:",
+        available.map((m) => `${m.provider}:${m.model}`)
+      );
       setAvailableModels(available);
-      
+
       // Update current selection if current model is not available
       const currentModelAvailable = available.some(
-        m => m.provider === selectedModel.provider && m.model === selectedModel.model
+        (m) =>
+          m.provider === selectedModel.provider &&
+          m.model === selectedModel.model
       );
-      
+
       if (!currentModelAvailable && available.length > 0) {
         const firstAvailable = available[0];
-        console.log("Current model not available, switching to:", firstAvailable);
+        console.log(
+          "Current model not available, switching to:",
+          firstAvailable
+        );
         setSelectedModel({
           provider: firstAvailable.provider,
           model: firstAvailable.model,
@@ -260,14 +170,42 @@ export function SimpleChat() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const handleProviderModelChange = (provider: string, model: string) => {
-    setSelectedModel((prev) => ({
-      ...prev,
-      provider: provider as "openai" | "anthropic" | "gemini",
-      model,
-    }));
-    setShowModelSelector(false);
-  };
+  type FetchFunction = typeof globalThis.fetch;
+  const customFetch = useCallback<FetchFunction>(
+    async (input, init) => {
+      if (init?.body === undefined) {
+        return new Response("No body provided", { status: 400 });
+      }
+
+      const m = JSON.parse(init.body as string) as any;
+      console.log(m);
+
+      const result = await streamText({
+        model: languageModel!,
+        tools: mcpTools,
+        messages: m.messages,
+      });
+
+      return result.toDataStreamResponse();
+    },
+    [languageModel, mcpTools]
+  );
+
+  // Workaround for static hosting. See <https://github.com/vercel/ai/issues/5140>
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    fetch: customFetch,
+  });
+
+  const handleSelectModel = useCallback((provider: string, model: string) => {
+    if (provider in providers) {
+      const providerInstance = providers[provider as keyof Providers];
+      if (providerInstance) {
+        setLanguageModel(providerInstance(model));
+        setShowModelSelector(false);
+        return;
+      }
+    }
+  }, [providers]);
 
   const handleSaveApiKey = async (provider: string) => {
     try {
@@ -331,7 +269,7 @@ export function SimpleChat() {
                 }}
                 className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-w-48"
               >
-                {getModelIcon(selectedModel.provider)}
+                <ModelIcon provider={selectedModel.provider} />
                 <span>{selectedModel.model}</span>
                 <svg
                   className="w-4 h-4 text-gray-500"
@@ -360,17 +298,20 @@ export function SimpleChat() {
                         (m) => m.provider === provider
                       ).map((modelObj) => {
                         const isAvailable = availableModels.some(
-                          (availableModel) => 
-                            availableModel.provider === provider && 
+                          (availableModel) =>
+                            availableModel.provider === provider &&
                             availableModel.model === modelObj.model
                         );
-                        
+
                         return (
                           <button
                             key={`${provider}-${modelObj.model}`}
                             onClick={() => {
                               if (isAvailable) {
-                                handleProviderModelChange(provider, modelObj.model);
+                                handleSelectModel(
+                                  provider,
+                                  modelObj.model
+                                );
                               }
                             }}
                             disabled={!isAvailable}
@@ -381,7 +322,7 @@ export function SimpleChat() {
                             }`}
                           >
                             <div className={isAvailable ? "" : "opacity-50"}>
-                              {getModelIcon(provider)}
+                              <ModelIcon provider={provider} />
                             </div>
                             <span>{modelObj.model}</span>
                             {!isAvailable && (
