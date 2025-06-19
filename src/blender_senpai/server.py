@@ -1,13 +1,15 @@
 import asyncio
+import contextlib
 import socket
 from logging import getLogger
 from pathlib import Path
 
 import uvicorn
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from .api import router as api_router
-from .fast_mcp import get_sse_app
+from .fast_mcp import get_mcp
 from .log_config import configure
 
 logger = getLogger(__name__)
@@ -48,7 +50,16 @@ class Server:
 
         self.port = self._get_port(self.port)
 
-        app = get_sse_app()
+        mcp = get_mcp()
+
+        @contextlib.asynccontextmanager
+        async def lifespan(app: FastAPI):
+            async with contextlib.AsyncExitStack() as stack:
+                await stack.enter_async_context(mcp.session_manager.run())
+                yield
+
+        app = FastAPI(lifespan=lifespan)
+        app.mount("/mcp", mcp.streamable_http_app())
         app.mount("/api", api_router)
 
         frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "out"
