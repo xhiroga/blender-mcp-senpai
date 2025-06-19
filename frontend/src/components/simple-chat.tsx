@@ -79,8 +79,12 @@ interface Settings {
   model: string;
 }
 
-interface ApiKeyState {
+interface ApiKey {
   apiKey: string;
+}
+
+interface ApiKeys {
+  [provider: string]: ApiKey;
 }
 
 export function SimpleChat() {
@@ -95,9 +99,7 @@ export function SimpleChat() {
     anthropic: "",
     gemini: "",
   });
-  const [apiKeys, setApiKeys] = useState<{
-    [key: string]: ApiKeyState;
-  }>({
+  const [apiKeys, setApiKeys] = useState<ApiKeys>({
     openai: { apiKey: "" },
     anthropic: { apiKey: "" },
     gemini: { apiKey: "" },
@@ -190,7 +192,6 @@ export function SimpleChat() {
     loadMcpTools();
   }, []);
 
-  // MCP Tools integration with useDangerousInBrowserRuntime
   const runtime = useDangerousInBrowserRuntime(
     useMemo(() => {
       console.log("🚀 Creating runtime with mcpTools:", Object.keys(mcpTools));
@@ -258,7 +259,7 @@ export function SimpleChat() {
           const data = await response.json();
           console.log("Loaded API keys from backend:", data);
           
-          const transformedData: { [key: string]: ApiKeyState } = {};
+          const transformedData: ApiKeys = {};
           for (const [provider, state] of Object.entries(data)) {
             transformedData[provider] = {
               apiKey: (state as { api_key: string }).api_key || "",
@@ -318,7 +319,6 @@ export function SimpleChat() {
 
       const result = await response.json();
       if (response.ok) {
-        // Update local state
         setApiKeys((prev) => ({
           ...prev,
           [provider]: { apiKey },
