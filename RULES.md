@@ -13,6 +13,7 @@
     - Do not omit `> /dev/null 2>&1`. Otherwise, Bash tools will continue to run as long as standard output continues.
     - The server port is not fixed to 13180. Find the actual port by checking the process: `ps aux | grep blender_senpai` and look for the port in the server output, then use that port for testing.
 - Even if you install new packages under .venv, sometimes old packages are still used. This is often because bpy overwrites the package directories inside Blender. Please remove them.
+- Commit messages should be written in English, referring to Semantic Commit Messages.
 
 ## Formatting Rules
 
