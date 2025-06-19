@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AssistantRuntimeProvider, ThreadPrimitive, ComposerPrimitive, MessagePrimitive } from "@assistant-ui/react";
 import { useDangerousInBrowserRuntime } from "@assistant-ui/react-edge";
+import { useMcp } from "use-mcp/react";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import Image from "next/image";
 
@@ -63,7 +64,58 @@ export function Assistant() {
   }, [apiKeyStates]);
 
 
-  // Assistant-UI Runtime setup with direct AI SDK integration
+  // Blender MCP integration using use-mcp hook with local server
+  const { 
+    state: mcpState, 
+    tools: mcpTools,
+    callTool: callMcpTool
+  } = useMcp({
+    url: typeof window !== 'undefined' ? `${window.location.origin}/sse` : 'http://localhost:56717/sse',
+    clientName: 'Blender Senpai',
+    autoReconnect: true,
+  });
+
+  // Convert MCP tools to AI SDK tools format
+  const convertedMcpTools = useMemo(() => {
+    if (!mcpTools || !Array.isArray(mcpTools)) {
+      return {};
+    }
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const converted: Record<string, any> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mcpTools.forEach((tool: any) => {
+      if (tool.name) {
+        converted[tool.name] = {
+          description: tool.description || tool.title || `Tool: ${tool.name}`,
+          parameters: tool.inputSchema || { type: 'object', properties: {} },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          execute: async (params: any) => {
+            try {
+              console.log(`Executing Blender MCP tool: ${tool.name}`, params);
+              const result = await callMcpTool(tool.name, params);
+              console.log(`Blender MCP tool ${tool.name} result:`, result);
+              return result;
+            } catch (error) {
+              console.error(`Error executing Blender MCP tool ${tool.name}:`, error);
+              throw error;
+            }
+          }
+        };
+      }
+    });
+    
+    return converted;
+  }, [mcpTools, callMcpTool]);
+
+  // Log MCP connection state for debugging
+  useEffect(() => {
+    console.log('Blender MCP state:', mcpState);
+    console.log('Blender MCP tools:', mcpTools ? mcpTools.length : 'No tools');
+    console.log('Converted tools:', Object.keys(convertedMcpTools));
+  }, [mcpState, mcpTools, convertedMcpTools]);
+
+  // Assistant-UI Runtime setup with direct AI SDK integration + MCP tools
   // WORKAROUND: GitHub issue #5140 - enables AI SDK with static export
   const runtime = useDangerousInBrowserRuntime(useMemo(() => ({
     model: async () => {
@@ -101,8 +153,9 @@ export function Assistant() {
       const provider = createProvider();
       return provider(settings.model);
     },
+    tools: convertedMcpTools,
     temperature: 0.7,
-  }), [settings.provider, settings.model]));
+  }), [settings.provider, settings.model, convertedMcpTools]));
 
   useEffect(() => {
     // Only run on client side

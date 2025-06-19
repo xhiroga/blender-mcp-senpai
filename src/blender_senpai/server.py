@@ -55,21 +55,17 @@ class Server:
         # Add our chat API routes
         app.include_router(api_router, prefix="/api")
         
-        # Mount MCP SSE app
+        # Mount MCP SSE app at root level (no prefix)
         mcp_app = get_sse_app()
-        app.mount("/sse", mcp_app)
+        app.mount("/", mcp_app)
         
-        # Serve static frontend files
+        # Serve static frontend files on MCP app
         frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "out"
         if frontend_dist.exists():
-            app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
+            mcp_app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
             logger.info(f"Serving static frontend from {frontend_dist}")
         else:
             logger.warning(f"Frontend dist directory not found at {frontend_dist}")
-            # Create a simple fallback response
-            @app.get("/")
-            async def fallback():
-                return {"message": "Frontend not built. Please run 'pnpm build' in the frontend directory."}
 
         logger.info(
             f"Starting FastAPI server with React UI and SSE endpoint on {self.host}:{self.port}"
