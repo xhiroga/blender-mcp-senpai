@@ -5,7 +5,7 @@ requires-python = ">=3.11,<3.12"
 dependencies = [
     "fastapi>=0.115.13",
     "keyring>=25.6.0",
-    "mcp>=1.7.1",
+    "mcp>=1.9.4",
     "pydantic>=2.11.3",
     "pywin32==310; sys_platform == 'win32'",
     "uvicorn>=0.34.2",
