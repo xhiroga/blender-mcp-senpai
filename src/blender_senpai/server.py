@@ -4,7 +4,6 @@ from logging import getLogger
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from .api import router as api_router
@@ -49,20 +48,14 @@ class Server:
 
         self.port = self._get_port(self.port)
 
-        # Create main FastAPI app
-        app = FastAPI(title="Blender Senpai")
-        
-        # Add our chat API routes
-        app.include_router(api_router, prefix="/api")
-        
-        # Mount MCP SSE app at root level (no prefix)
-        mcp_app = get_sse_app()
-        app.mount("/", mcp_app)
-        
-        # Serve static frontend files on MCP app
+        app = get_sse_app()
+        app.mount("/api", api_router)
+
         frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "out"
         if frontend_dist.exists():
-            mcp_app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
+            app.mount(
+                "/", StaticFiles(directory=str(frontend_dist), html=True), name="static"
+            )
             logger.info(f"Serving static frontend from {frontend_dist}")
         else:
             logger.warning(f"Frontend dist directory not found at {frontend_dist}")

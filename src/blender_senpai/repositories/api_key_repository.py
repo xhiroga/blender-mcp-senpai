@@ -6,7 +6,7 @@ from logging import getLogger
 
 import keyring  # type: ignore
 
-from ..types_models.api_key import ApiKey
+from ..types.api_key import ApiKey
 
 logger = getLogger(__name__)
 
