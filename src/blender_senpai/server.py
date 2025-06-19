@@ -59,6 +59,10 @@ class Server:
                 yield
 
         app = FastAPI(lifespan=lifespan)
+        # Starletteの仕様として、パスプレフィックス（リクエストがあったパスの最も右側のスラッシュまでの部分）でマウント先を確定させる
+        # したがって、localhost:13180/mcp というリクエストは、"/" にマウントされる
+        # 一方で、localhost:13180/mcp/ や localhost:13180/mcp/mcp というリクエストは、"/mcp" にマウントされる
+        # 一見困りそうだが、`streamable_http_app()` は、"/mcp" にマウントされるため、結果的に"/mcp/mcp" でアクセスするため問題ない。
         app.mount("/mcp", mcp.streamable_http_app())
         app.mount("/api", api_router)
 
