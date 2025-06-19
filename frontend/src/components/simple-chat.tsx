@@ -8,6 +8,9 @@ import {
   MessagePrimitive,
 } from "@assistant-ui/react";
 import { useDangerousInBrowserRuntime } from "@assistant-ui/react-edge";
+import { createOpenAI } from "@ai-sdk/openai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { AVAILABLE_MODELS } from "@/lib/models";
 import Image from "next/image";
 import type { Tool as AITool } from "ai";
@@ -32,48 +35,6 @@ const convertMCPToolsToAssistantUI = (mcpTools: Record<string, AITool>) => {
   return convertedTools;
 };
 
-// Helper function to get model icon components
-const getModelIcon = (provider: string) => {
-  const iconClass = "w-5 h-5";
-
-  switch (provider) {
-    case "openai":
-      return (
-        <Image
-          src="/openai.svg"
-          alt="OpenAI"
-          width={20}
-          height={20}
-          className={iconClass}
-        />
-      );
-    case "anthropic":
-      return (
-        <Image
-          src="/anthropic.svg"
-          alt="Anthropic"
-          width={20}
-          height={20}
-          className={iconClass}
-        />
-      );
-    case "gemini":
-      return (
-        <Image
-          src="/google.svg"
-          alt="Google"
-          width={20}
-          height={20}
-          className={iconClass}
-        />
-      );
-    case "tutorial":
-      return <span className="text-lg">📚</span>;
-    default:
-      return <span className="text-lg">🤖</span>;
-  }
-};
-
 interface Settings {
   provider: string;
   model: string;
@@ -87,8 +48,22 @@ interface ApiKeys {
   [provider: string]: ApiKey;
 }
 
+const getModelIcon = (provider: string) => {
+  const iconMap: Record<string, { src: string; alt: string }> = {
+    openai: { src: "/openai.svg", alt: "OpenAI" },
+    anthropic: { src: "/anthropic.svg", alt: "Anthropic" },
+    gemini: { src: "/google.svg", alt: "Google" },
+  };
+
+  if (iconMap[provider]) {
+    const { src, alt } = iconMap[provider]!;
+    return <Image src={src} alt={alt} width={20} height={20} className="w-5 h-5" />;
+  }
+  return <span className="text-lg">🤖</span>;
+};
+
 export function SimpleChat() {
-  const [settings, setSettings] = useState<Settings>({
+  const [selectedModel, setSelectedModel] = useState<Settings>({
     provider: "openai",
     model: "gpt-4o",
   });
@@ -105,13 +80,7 @@ export function SimpleChat() {
     gemini: { apiKey: "" },
   });
   const [mcpTools, setMcpTools] = useState<Record<string, AITool>>({});
-
-  const getApiKey = useCallback(
-    (provider: string): string => {
-      return apiKeys[provider]?.apiKey || "";
-    },
-    [apiKeys]
-  );
+  const [availableModels, setAvailableModels] = useState<typeof AVAILABLE_MODELS>([]);
 
   // Intercept fetch to log LLM requests
   useEffect(() => {
@@ -192,63 +161,36 @@ export function SimpleChat() {
     loadMcpTools();
   }, []);
 
+  const getModel = useCallback(() => {
+    const apiKey = apiKeys[selectedModel.provider]?.apiKey;
+    if (!apiKey) {
+      throw new Error(`API key not configured for provider: ${selectedModel.provider}`);
+    }
+
+    switch (selectedModel.provider) {
+      case "openai":
+        return createOpenAI({ apiKey })(selectedModel.model);
+      case "anthropic":
+        return createAnthropic({ apiKey })(selectedModel.model);
+      case "gemini":
+        return createGoogleGenerativeAI({ apiKey })(selectedModel.model);
+      default:
+        throw new Error("Unsupported provider");
+    }
+  }, [apiKeys,selectedModel.provider, selectedModel.model]);
+
   const runtime = useDangerousInBrowserRuntime(
     useMemo(() => {
       console.log("🚀 Creating runtime with mcpTools:", Object.keys(mcpTools));
+      const convertedTools = convertMCPToolsToAssistantUI(mcpTools);
+      
       return {
-        model: async () => {
-          console.log(
-            "🤖 Model function called with provider:",
-            settings.provider,
-            "model:",
-            settings.model
-          );
-          
-          const apiKey = getApiKey(settings.provider);
-          if (!apiKey) {
-            throw new Error(`API key not configured for provider: ${settings.provider}`);
-          }
-
-          // Import AI SDK modules dynamically
-          let createProvider;
-
-          switch (settings.provider) {
-            case "openai":
-              const { createOpenAI } = await import("@ai-sdk/openai");
-              createProvider = () => createOpenAI({ apiKey });
-              break;
-            case "anthropic":
-              const { createAnthropic } = await import("@ai-sdk/anthropic");
-              createProvider = () => createAnthropic({ apiKey });
-              break;
-            case "gemini":
-              const { createGoogleGenerativeAI } = await import(
-                "@ai-sdk/google"
-              );
-              createProvider = () => createGoogleGenerativeAI({ apiKey });
-              break;
-            default:
-              throw new Error("Unsupported provider");
-          }
-
-          const provider = createProvider();
-          const model = provider(settings.model);
-          console.log("🤖 Model created:", model);
-          return model;
-        },
-        tools: (() => {
-          const convertedTools = convertMCPToolsToAssistantUI(mcpTools);
-          console.log(
-            "🔧 Converted tools for runtime:",
-            Object.keys(convertedTools)
-          );
-          console.log("🔧 Tools being passed to runtime:", convertedTools);
-          return convertedTools;
-        })(),
+        model: () => getModel(),
+        tools: convertedTools,
         temperature: 0.7,
         maxSteps: 5,
       };
-    }, [settings.provider, settings.model, mcpTools, getApiKey])
+    }, [getModel, mcpTools])
   );
 
   useEffect(() => {
@@ -277,6 +219,34 @@ export function SimpleChat() {
   }, []);
 
   useEffect(() => {
+    const updateAvailableModels = () => {
+      const available = AVAILABLE_MODELS.filter(model => {
+        const hasApiKey = apiKeys[model.provider]?.apiKey;
+        return hasApiKey && hasApiKey.length > 0;
+      });
+      
+      console.log("Available models updated:", available.map(m => `${m.provider}:${m.model}`));
+      setAvailableModels(available);
+      
+      // Update current selection if current model is not available
+      const currentModelAvailable = available.some(
+        m => m.provider === selectedModel.provider && m.model === selectedModel.model
+      );
+      
+      if (!currentModelAvailable && available.length > 0) {
+        const firstAvailable = available[0];
+        console.log("Current model not available, switching to:", firstAvailable);
+        setSelectedModel({
+          provider: firstAvailable.provider,
+          model: firstAvailable.model,
+        });
+      }
+    };
+
+    updateAvailableModels();
+  }, [apiKeys, selectedModel.provider, selectedModel.model]);
+
+  useEffect(() => {
     // Close dropdowns when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
@@ -291,7 +261,7 @@ export function SimpleChat() {
   }, []);
 
   const handleProviderModelChange = (provider: string, model: string) => {
-    setSettings((prev) => ({
+    setSelectedModel((prev) => ({
       ...prev,
       provider: provider as "openai" | "anthropic" | "gemini",
       model,
@@ -361,8 +331,8 @@ export function SimpleChat() {
                 }}
                 className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-w-48"
               >
-                {getModelIcon(settings.provider)}
-                <span>{settings.model}</span>
+                {getModelIcon(selectedModel.provider)}
+                <span>{selectedModel.model}</span>
                 <svg
                   className="w-4 h-4 text-gray-500"
                   fill="none"
@@ -388,18 +358,40 @@ export function SimpleChat() {
                       </div>
                       {AVAILABLE_MODELS.filter(
                         (m) => m.provider === provider
-                      ).map((modelObj) => (
-                        <button
-                          key={`${provider}-${modelObj.model}`}
-                          onClick={() =>
-                            handleProviderModelChange(provider, modelObj.model)
-                          }
-                          className="w-full text-left px-2 py-1.5 text-sm text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md flex items-center gap-2"
-                        >
-                          {getModelIcon(provider)}
-                          <span>{modelObj.model}</span>
-                        </button>
-                      ))}
+                      ).map((modelObj) => {
+                        const isAvailable = availableModels.some(
+                          (availableModel) => 
+                            availableModel.provider === provider && 
+                            availableModel.model === modelObj.model
+                        );
+                        
+                        return (
+                          <button
+                            key={`${provider}-${modelObj.model}`}
+                            onClick={() => {
+                              if (isAvailable) {
+                                handleProviderModelChange(provider, modelObj.model);
+                              }
+                            }}
+                            disabled={!isAvailable}
+                            className={`w-full text-left px-2 py-1.5 text-sm rounded-md flex items-center gap-2 ${
+                              isAvailable
+                                ? "text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                                : "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                            }`}
+                          >
+                            <div className={isAvailable ? "" : "opacity-50"}>
+                              {getModelIcon(provider)}
+                            </div>
+                            <span>{modelObj.model}</span>
+                            {!isAvailable && (
+                              <span className="ml-auto text-xs text-gray-400 dark:text-gray-600">
+                                No API key
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>

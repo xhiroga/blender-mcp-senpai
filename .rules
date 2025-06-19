@@ -10,6 +10,7 @@
 
 - After implementation, please verify that it works.
   - For the frontend, execute `cd frontend && pnpm build && cd .. && uv run -m src.blender_senpai.server > /dev/null 2>&1 &`, then start Playwright in MCP and verify that it works.
+    - Do not omit `> /dev/null 2>&1`. Otherwise, Bash tools will continue to run as long as standard output continues.
 
 ## Formatting Rules
 
