@@ -234,57 +234,27 @@ export function SimpleChat() {
     }
   }, [apiKeyInputs, apiKeys, setApiKeys, providers, setProviders, showToast]);
 
-  const handleSelectModel = useCallback((provider: string, model: string) => {
-    if (provider === "openai" && providers.openai) {
-      try {
-        const newLanguageModel = providers.openai(model);
-        setLanguageModel(newLanguageModel);
-        setShowModelSelector(false);
-        showToast(`モデルを ${model} に変更しました`, "info");
-        return;
-      } catch (error) {
-        showToast(`モデルの変更に失敗しました: ${error}`, "error");
+  const handleSelectModel = useCallback((providerName: string, modelName: string) => {
+    try {
+      if (!["openai", "anthropic", "gemini"].includes(providerName)) {
+        showToast(`Invalid provider: ${providerName}`, "error");
         return;
       }
-    }
-    
-    if (provider === "anthropic" && providers.anthropic) {
-      try {
-        const newLanguageModel = providers.anthropic(model);
-        setLanguageModel(newLanguageModel);
-        setSelectedModel({
-          provider: "anthropic",
-          model,
-        });
-        setShowModelSelector(false);
-        showToast(`モデルを ${model} に変更しました`, "info");
-        return;
-      } catch (error) {
-        showToast(`モデルの変更に失敗しました: ${error}`, "error");
+      
+      const provider = providers[providerName as Provider];
+      if (!provider) {
+        showToast("Provider is not found: " + providerName, "error");
         return;
       }
-    }
-    
-    if (provider === "gemini" && providers.gemini) {
-      try {
-        const newLanguageModel = providers.gemini(model);
-        setLanguageModel(newLanguageModel);
-        setSelectedModel({
-          provider: "gemini",
-          model,
-        });
-        setShowModelSelector(false);
-        showToast(`モデルを ${model} に変更しました`, "info");
-        return;
-      } catch (error) {
-        showToast(`モデルの変更に失敗しました: ${error}`, "error");
-        return;
-      }
-    }
-    
-    showToast("選択されたプロバイダーが利用できません", "error");
-  }, [providers, showToast]);
 
+      const model = provider.languageModel(modelName);
+      setLanguageModel(model);
+      setShowModelSelector(false);
+      showToast("Model selected: " + modelName, "info");
+    } catch (error) {
+      showToast(`Failed to select model: ${error}`, "error");
+    }
+  }, [providers, setLanguageModel, setShowModelSelector, showToast]);
 
   type FetchFunction = typeof globalThis.fetch;
   const customFetch = useCallback<FetchFunction>(
