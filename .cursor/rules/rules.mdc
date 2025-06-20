@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+@ADR.ja.md
+[RULES.md](mdc:RULES.md)
+
