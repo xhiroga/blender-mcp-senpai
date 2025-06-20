@@ -1,8 +1,17 @@
 "use client";
 
-import { DEFAULT_MODELS, Model, Provider, PROVIDER_NAMES, REGISTERED_MODELS } from "@/lib/models";
+import {
+  DEFAULT_MODELS,
+  Model,
+  Provider,
+  PROVIDER_NAMES,
+  REGISTERED_MODELS,
+} from "@/lib/models";
 import { AnthropicProvider, createAnthropic } from "@ai-sdk/anthropic";
-import { createGoogleGenerativeAI, GoogleGenerativeAIProvider } from "@ai-sdk/google";
+import {
+  createGoogleGenerativeAI,
+  GoogleGenerativeAIProvider,
+} from "@ai-sdk/google";
 import { createOpenAI, OpenAIProvider } from "@ai-sdk/openai";
 import { useChat } from "@ai-sdk/react";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -45,7 +54,9 @@ interface Toast {
 
 export function SimpleChat() {
   const [mcpTools, setMcpTools] = useState<Tools>({});
-  const [languageModel, setLanguageModel] = useState<LanguageModelV1 | undefined>(undefined);
+  const [languageModel, setLanguageModel] = useState<
+    LanguageModelV1 | undefined
+  >(undefined);
   const [showSettings, setShowSettings] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -68,28 +79,31 @@ export function SimpleChat() {
   type MCPClient = Awaited<ReturnType<typeof createMCPClient>>;
   const [mcpClient, setMcpClient] = useState<MCPClient | null>(null);
 
-  const showToast = useCallback((message: string, type: "error" | "warning" | "info" = "error") => {
-    const id = Date.now().toString();
-    switch (type) {
-      case "error":
-        console.error(message);
-      case "warning":
-        console.warn(message);
-      case "info":
-        console.info(message);
-    }
-    setToasts(prev => [...prev, { id, message, type }]);
-    
-    setTimeout(() => {
-      setToasts(prev => prev.filter(error => error.id !== id));
-    }, 5000);
-  }, [setToasts]);
+  const showToast = useCallback(
+    (message: string, type: "error" | "warning" | "info" = "error") => {
+      const id = Date.now().toString();
+      switch (type) {
+        case "error":
+          console.error(message);
+        case "warning":
+          console.warn(message);
+        case "info":
+          console.info(message);
+      }
+      setToasts((prev) => [...prev, { id, message, type }]);
 
-  const removeError = useCallback((id: string) => {
-    setToasts(prev => prev.filter(error => error.id !== id));
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((error) => error.id !== id));
+      }, 5000);
+    },
+    [setToasts]
+  );
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((error) => error.id !== id));
   }, []);
 
-  useEffect(() => {  
+  useEffect(() => {
     const loadApiKeys = async () => {
       try {
         const response = await fetch("/api/api-keys");
@@ -104,9 +118,15 @@ export function SimpleChat() {
           setApiKeyInputs(apiKeys);
 
           const providers: Providers = {
-            openai: apiKeys.openai ? createOpenAI({ apiKey: apiKeys.openai }) : undefined,
-            anthropic: apiKeys.anthropic ? createAnthropic({ apiKey: apiKeys.anthropic }) : undefined,
-            gemini: apiKeys.gemini ? createGoogleGenerativeAI({ apiKey: apiKeys.gemini }) : undefined,
+            openai: apiKeys.openai
+              ? createOpenAI({ apiKey: apiKeys.openai })
+              : undefined,
+            anthropic: apiKeys.anthropic
+              ? createAnthropic({ apiKey: apiKeys.anthropic })
+              : undefined,
+            gemini: apiKeys.gemini
+              ? createGoogleGenerativeAI({ apiKey: apiKeys.gemini })
+              : undefined,
           };
           setProviders(providers);
 
@@ -123,17 +143,13 @@ export function SimpleChat() {
 
   useEffect(() => {
     const loadTools = async () => {
-      if (!mcpClient) {
-        showToast("Failed to initialize MCP client", "error");
-        return;
-      }
+      if (!mcpClient) return;
 
       try {
         const tools = await mcpClient.tools();
         setMcpTools(tools);
       } catch (error) {
-        console.error("Error loading MCP tools:", error);
-        showToast("Failed to load MCP tools", "error");
+        showToast("MCP tools loading failed: " + error, "error");
       }
     };
     loadTools();
@@ -141,8 +157,12 @@ export function SimpleChat() {
 
   useEffect(() => {
     const updateAvailableModels = () => {
-      const availableProviderKeys = Object.keys(providers).filter(key => providers[key as keyof Providers] !== undefined);
-      const availableModels: Model[] = REGISTERED_MODELS.filter(m => availableProviderKeys.includes(m.provider));
+      const availableProviderKeys = Object.keys(providers).filter(
+        (key) => providers[key as keyof Providers] !== undefined
+      );
+      const availableModels: Model[] = REGISTERED_MODELS.filter((m) =>
+        availableProviderKeys.includes(m.provider)
+      );
       setAvailableModels(availableModels);
     };
     updateAvailableModels();
@@ -162,108 +182,125 @@ export function SimpleChat() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  const handleVerifyApiKey = useCallback(async (providerName: string) => {
-    try {
-      if (!["openai", "anthropic", "gemini"].includes(providerName)) {
-        showToast(`Invalid provider: ${providerName}`, "error");
-        return;
+  const handleVerifyApiKey = useCallback(
+    async (providerName: string) => {
+      try {
+        if (!["openai", "anthropic", "gemini"].includes(providerName)) {
+          showToast(`Invalid provider: ${providerName}`, "error");
+          return;
+        }
+
+        const apiKey = apiKeyInputs[providerName as Provider];
+        if (!apiKey) {
+          showToast(`API key for ${providerName} is empty`, "warning");
+          return;
+        } else if (apiKey === apiKeys[providerName as keyof ApiKeys]) {
+          showToast(`API key for ${providerName} is not changed`, "info");
+          return;
+        }
+
+        let provider:
+          | OpenAIProvider
+          | AnthropicProvider
+          | GoogleGenerativeAIProvider;
+        switch (providerName as Provider) {
+          case "openai":
+            provider = createOpenAI({ apiKey: apiKey });
+            break;
+          case "anthropic":
+            provider = createAnthropic({ apiKey: apiKey });
+            break;
+          case "gemini":
+            provider = createGoogleGenerativeAI({ apiKey: apiKey });
+            break;
+        }
+
+        const model = provider.languageModel(
+          DEFAULT_MODELS[providerName as Provider]
+        );
+        const { text } = await generateText({
+          model: model,
+          messages: [{ role: "user", content: "Hello!" }],
+        });
+        console.log(`${providerName} API key is valid! Model says: ${text}`);
+
+        const updatedApiKeys = {
+          ...apiKeys,
+          [providerName]: { apiKey },
+        };
+        setApiKeys(updatedApiKeys);
+
+        const updatedProviders = {
+          ...providers,
+          [providerName as Provider]: provider,
+        };
+        setProviders(updatedProviders);
+
+        const response = await fetch(`/api/api-keys/${providerName}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ api_key: apiKey }),
+        });
+
+        if (response.ok) {
+          showToast(`API key for ${providerName} is saved`, "info");
+        } else {
+          showToast(
+            `Failed to save API key for ${providerName}: ${response.statusText}`,
+            "error"
+          );
+        }
+      } catch (error) {
+        showToast(
+          `Failed to save API key for ${providerName}: ${error}`,
+          "error"
+        );
       }
+    },
+    [apiKeyInputs, apiKeys, setApiKeys, providers, setProviders, showToast]
+  );
 
-      const apiKey = apiKeyInputs[providerName as Provider];
-      if (!apiKey) {
-        showToast(`API key for ${providerName} is empty`, "warning");
-        return;
-      } else if (apiKey === apiKeys[providerName as keyof ApiKeys]) {
-        showToast(`API key for ${providerName} is not changed`, "info");
-        return;
+  const handleSelectModel = useCallback(
+    (providerName: string, modelName: string) => {
+      try {
+        if (!["openai", "anthropic", "gemini"].includes(providerName)) {
+          showToast(`Invalid provider: ${providerName}`, "error");
+          return;
+        }
+
+        const provider = providers[providerName as Provider];
+        if (!provider) {
+          showToast("Provider is not found: " + providerName, "error");
+          return;
+        }
+
+        const model = provider.languageModel(modelName);
+        setLanguageModel(model);
+        setShowModelSelector(false);
+        showToast("Model selected: " + modelName, "info");
+      } catch (error) {
+        showToast(`Failed to select model: ${error}`, "error");
       }
+    },
+    [providers, setLanguageModel, setShowModelSelector, showToast]
+  );
 
-      let provider: OpenAIProvider | AnthropicProvider | GoogleGenerativeAIProvider;
-      switch (providerName as Provider) {
-        case "openai":
-          provider = createOpenAI({ apiKey: apiKey });
-          break;
-        case "anthropic":
-          provider = createAnthropic({ apiKey: apiKey });
-          break;
-        case "gemini":
-          provider = createGoogleGenerativeAI({ apiKey: apiKey });
-          break;
-      }
-
-      const model = provider.languageModel(DEFAULT_MODELS[providerName as Provider]);
-      const {text} = await generateText({
-        model: model,
-        messages: [{ role: "user", content: "Hello!" }],
-      });
-      console.log(`${providerName} API key is valid! Model says: ${text}`);
-
-      const updatedApiKeys = {
-        ...apiKeys,
-        [providerName]: { apiKey },
-      };
-      setApiKeys(updatedApiKeys);
-
-      const updatedProviders = {
-        ...providers,
-        [providerName as Provider]: provider,
-      };
-      setProviders(updatedProviders);
-
-      const response = await fetch(`/api/api-keys/${providerName}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ api_key: apiKey }),
-      });
-
-      if (response.ok) {
-        showToast(`API key for ${providerName} is saved`, "info");
-      } else {
-        showToast(`Failed to save API key for ${providerName}: ${response.statusText}`, "error");
-      }
-    } catch (error) {
-      showToast(`Failed to save API key for ${providerName}: ${error}`, "error");
-    }
-  }, [apiKeyInputs, apiKeys, setApiKeys, providers, setProviders, showToast]);
-
-  const handleSelectModel = useCallback((providerName: string, modelName: string) => {
-    try {
-      if (!["openai", "anthropic", "gemini"].includes(providerName)) {
-        showToast(`Invalid provider: ${providerName}`, "error");
-        return;
-      }
-      
-      const provider = providers[providerName as Provider];
-      if (!provider) {
-        showToast("Provider is not found: " + providerName, "error");
-        return;
-      }
-
-      const model = provider.languageModel(modelName);
-      setLanguageModel(model);
-      setShowModelSelector(false);
-      showToast("Model selected: " + modelName, "info");
-    } catch (error) {
-      showToast(`Failed to select model: ${error}`, "error");
-    }
-  }, [providers, setLanguageModel, setShowModelSelector, showToast]);
-  
   useEffect(() => {
     const initMCPClient = async () => {
       try {
         const client = await createMCPClient({
           transport: new StreamableHTTPClientTransport(
             new URL(`${window.location.origin}/mcp/mcp`)
-          )
+          ),
         });
         setMcpClient(client);
       } catch (error) {
         showToast("Failed to initialize MCP client: " + error, "error");
       }
     };
-    
+
     initMCPClient();
   }, [setMcpClient, showToast]);
 
@@ -322,28 +359,56 @@ export function SimpleChat() {
           >
             <div className="flex-shrink-0">
               {error.type === "error" && (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
               {error.type === "warning" && (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
               {error.type === "info" && (
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </div>
             <div className="flex-1 text-sm">{error.message}</div>
             <button
-              onClick={() => removeError(error.id)}
+              onClick={() => removeToast(error.id)}
               className="flex-shrink-0 text-white/80 hover:text-white"
             >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
           </div>
@@ -413,10 +478,7 @@ export function SimpleChat() {
                             key={`${provider}-${modelObj.model}`}
                             onClick={() => {
                               if (isAvailable) {
-                                handleSelectModel(
-                                  provider,
-                                  modelObj.model
-                                );
+                                handleSelectModel(provider, modelObj.model);
                               }
                             }}
                             disabled={!isAvailable}
@@ -516,24 +578,32 @@ export function SimpleChat() {
                       <div
                         key={index}
                         className={`flex mb-6 ${
-                          message.role === "user" ? "justify-end" : "justify-start"
+                          message.role === "user"
+                            ? "justify-end"
+                            : "justify-start"
                         }`}
                       >
                         <div className="flex gap-3 max-w-2xl">
                           <div className="flex-shrink-0">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              message.role === "user" ? "bg-blue-500" : "bg-green-500"
-                            }`}>
+                            <div
+                              className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                message.role === "user"
+                                  ? "bg-blue-500"
+                                  : "bg-green-500"
+                              }`}
+                            >
                               <span className="text-white text-sm font-medium">
                                 {message.role === "user" ? "U" : "A"}
                               </span>
                             </div>
                           </div>
-                          <div className={`rounded-lg px-4 py-3 ${
-                            message.role === "user" 
-                              ? "bg-gray-100 dark:bg-gray-700" 
-                              : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600"
-                          }`}>
+                          <div
+                            className={`rounded-lg px-4 py-3 ${
+                              message.role === "user"
+                                ? "bg-gray-100 dark:bg-gray-700"
+                                : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600"
+                            }`}
+                          >
                             <div className="text-gray-900 dark:text-white">
                               {message.content}
                             </div>
@@ -548,7 +618,10 @@ export function SimpleChat() {
               {/* Input */}
               <div className="border-t border-gray-200 dark:border-gray-700 p-4">
                 <div className="max-w-3xl mx-auto">
-                  <form onSubmit={handleSubmit} className="relative flex items-end gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-3">
+                  <form
+                    onSubmit={handleSubmit}
+                    className="relative flex items-end gap-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-3"
+                  >
                     <textarea
                       value={input}
                       onChange={handleInputChange}
