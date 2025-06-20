@@ -104,9 +104,9 @@ export function SimpleChat() {
           setApiKeyInputs(apiKeys);
 
           const providers: Providers = {
-            openai: createOpenAI({ apiKey: apiKeys.openai }),
-            anthropic: createAnthropic({ apiKey: apiKeys.anthropic }),
-            gemini: createGoogleGenerativeAI({ apiKey: apiKeys.gemini }),
+            openai: apiKeys.openai ? createOpenAI({ apiKey: apiKeys.openai }) : undefined,
+            anthropic: apiKeys.anthropic ? createAnthropic({ apiKey: apiKeys.anthropic }) : undefined,
+            gemini: apiKeys.gemini ? createGoogleGenerativeAI({ apiKey: apiKeys.gemini }) : undefined,
           };
           setProviders(providers);
 
