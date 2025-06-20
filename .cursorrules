@@ -26,6 +26,7 @@
 
 ## Meta Rules
 
+- Unless you have source code or references to documents you have searched, avoid definitive language and use words that indicate certainty or possibility.
 - Even if the instructions are in Japanese, write comments in the code in English.
 - Do not include comments that explain the meaning of variable names, etc. Keep comments concise.
 - The project uses uv. When running `python`, use `uv run python`.
