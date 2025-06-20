@@ -253,7 +253,7 @@ export function SimpleChat() {
         });
         setMcpClient(client);
       } catch (error) {
-        showToast("Failed to initialize MCP client", "error");
+        showToast("Failed to initialize MCP client: " + error, "error");
       }
     };
     
@@ -274,7 +274,7 @@ export function SimpleChat() {
       }
 
       try {
-        const m = JSON.parse(init.body as string) as any;
+        const m = JSON.parse(init.body as string);
         console.log(m);
 
         const result = await streamText({
