@@ -1,10 +1,11 @@
 "use client";
 
-import { REGISTERED_MODELS, Model, DEFAULT_MODELS, Provider } from "@/lib/models";
+import { DEFAULT_MODELS, Model, Provider, PROVIDER_NAMES, REGISTERED_MODELS } from "@/lib/models";
 import { AnthropicProvider, createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI, GoogleGenerativeAIProvider } from "@ai-sdk/google";
 import { createOpenAI, OpenAIProvider } from "@ai-sdk/openai";
 import { useChat } from "@ai-sdk/react";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { LanguageModelV1, Tool } from "ai";
 import {
   experimental_createMCPClient as createMCPClient,
@@ -42,22 +43,6 @@ interface Toast {
   type: "error" | "warning" | "info";
 }
 
-// MCPクライアントの作成（エラーハンドリング付き）
-let mcpClient: any = null;
-try {
-  // ブラウザ環境でのみ実行
-  if (typeof window !== "undefined") {
-    mcpClient = await createMCPClient({
-      transport: {
-        type: "sse",
-        url: `${window.location.origin}/mcp/mcp`,
-      },
-    });
-  }
-} catch (error) {
-  console.error("Failed to create MCP client:", error);
-}
-
 export function SimpleChat() {
   const [mcpTools, setMcpTools] = useState<Tools>({});
   const [languageModel, setLanguageModel] = useState<LanguageModelV1 | undefined>(undefined);
@@ -80,6 +65,8 @@ export function SimpleChat() {
     anthropic: undefined,
     gemini: undefined,
   });
+  type MCPClient = Awaited<ReturnType<typeof createMCPClient>>;
+  const [mcpClient, setMcpClient] = useState<MCPClient | null>(null);
 
   const showToast = useCallback((message: string, type: "error" | "warning" | "info" = "error") => {
     const id = Date.now().toString();
@@ -118,7 +105,7 @@ export function SimpleChat() {
       }
     };
     loadTools();
-  }, [showToast]);
+  }, [mcpClient, showToast]);
 
   useEffect(() => {  
     const loadApiKeys = async () => {
@@ -255,6 +242,23 @@ export function SimpleChat() {
       showToast(`Failed to select model: ${error}`, "error");
     }
   }, [providers, setLanguageModel, setShowModelSelector, showToast]);
+  
+  useEffect(() => {
+    const initMCPClient = async () => {
+      try {
+        const client = await createMCPClient({
+          transport: new StreamableHTTPClientTransport(
+            new URL(`${window.location.origin}/mcp/mcp`)
+          )
+        });
+        setMcpClient(client);
+      } catch (error) {
+        showToast("Failed to initialize MCP client", "error");
+      }
+    };
+    
+    initMCPClient();
+  }, [setMcpClient, showToast]);
 
   type FetchFunction = typeof globalThis.fetch;
   const customFetch = useCallback<FetchFunction>(
@@ -357,8 +361,14 @@ export function SimpleChat() {
                 }}
                 className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors min-w-48"
               >
-                <ModelIcon provider={selectedModel.provider} />
-                <span>{selectedModel.model}</span>
+                {languageModel ? (
+                  <>
+                    <ModelIcon provider={languageModel.provider} />
+                    <span>{languageModel.modelId}</span>
+                  </>
+                ) : (
+                  <span>Select a model</span>
+                )}
                 <svg
                   className="w-4 h-4 text-gray-500"
                   fill="none"
@@ -612,11 +622,11 @@ export function SimpleChat() {
                   API Keys
                 </h3>
                 <div className="space-y-4">
-                  {["openai", "anthropic", "gemini"].map((provider) => (
+                  {PROVIDER_NAMES.map((provider) => (
                     <div key={provider} className="space-y-2">
                       <label className="block text-sm text-gray-700 dark:text-gray-300 font-medium capitalize">
                         {provider} API Key
-                        {apiKeys[provider]?.apiKey && (
+                        {apiKeys[provider as keyof ApiKeys] && (
                           <span className="ml-2 text-xs text-green-600 dark:text-green-400">
                             ✓ Configured
                           </span>
@@ -634,11 +644,7 @@ export function SimpleChat() {
                               [provider]: e.target.value,
                             }))
                           }
-                          placeholder={
-                            apiKeys[provider]?.apiKey
-                              ? "********************"
-                              : `Enter ${provider} API key`
-                          }
+                          placeholder={`Enter ${provider} API key`}
                           className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                         <button
