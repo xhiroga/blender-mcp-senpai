@@ -66,13 +66,13 @@ class Server:
         app.mount("/mcp", mcp.streamable_http_app())
         app.mount("/api", api_router)
 
-        frontend_dist = Path(__file__).parent.parent.parent / "web" / "out"
-        if frontend_dist.exists():
+        web_dist = Path(__file__).parent / "web"
+        if web_dist.exists():
             app.mount(
-                "/", StaticFiles(directory=str(frontend_dist), html=True), name="static"
+                "/", StaticFiles(directory=str(web_dist), html=True), name="static"
             )
         else:
-            logger.warning(f"Frontend dist directory not found at {frontend_dist}")
+            logger.warning(f"Web dist directory not found at {web_dist}")
 
         logger.info(
             f"Starting FastAPI server with React UI and SSE endpoint on {self.host}:{self.port}"
