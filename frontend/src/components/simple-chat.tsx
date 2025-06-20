@@ -105,7 +105,7 @@ export function SimpleChat() {
   useEffect(() => {
     const loadTools = async () => {
       if (!mcpClient) {
-        showToast("MCPクライアントの初期化に失敗しました", "error");
+        showToast("Failed to initialize MCP client", "error");
         return;
       }
 
@@ -114,7 +114,7 @@ export function SimpleChat() {
         setMcpTools(tools);
       } catch (error) {
         console.error("Error loading MCP tools:", error);
-        showToast("MCPツールの読み込みに失敗しました", "error");
+        showToast("Failed to load MCP tools", "error");
       }
     };
     loadTools();
@@ -260,12 +260,12 @@ export function SimpleChat() {
   const customFetch = useCallback<FetchFunction>(
     async (input, init) => {
       if (init?.body === undefined) {
-        showToast("リクエストボディが提供されていません", "error");
+        showToast("Request body is not provided", "error");
         return new Response("No body provided", { status: 400 });
       }
 
       if (!languageModel) {
-        showToast("言語モデルが選択されていません", "error");
+        showToast("Language model is not selected", "error");
         return new Response("No language model selected", { status: 400 });
       }
 
@@ -282,7 +282,7 @@ export function SimpleChat() {
         return result.toDataStreamResponse();
       } catch (error) {
         console.error("Error in customFetch:", error);
-        showToast("チャットリクエストの処理中にエラーが発生しました", "error");
+        showToast("An error occurred while processing chat request", "error");
         return new Response("Internal server error", { status: 500 });
       }
     },
