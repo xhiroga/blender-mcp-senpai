@@ -66,7 +66,7 @@ class Server:
         app.mount("/mcp", mcp.streamable_http_app())
         app.mount("/api", api_router)
 
-        frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "out"
+        frontend_dist = Path(__file__).parent.parent.parent / "web" / "out"
         if frontend_dist.exists():
             app.mount(
                 "/", StaticFiles(directory=str(frontend_dist), html=True), name="static"
