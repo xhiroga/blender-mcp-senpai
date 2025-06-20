@@ -89,6 +89,38 @@ export function SimpleChat() {
     setToasts(prev => prev.filter(error => error.id !== id));
   }, []);
 
+  useEffect(() => {  
+    const loadApiKeys = async () => {
+      try {
+        const response = await fetch("/api/api-keys");
+        if (response.ok) {
+          const data: ApiKeysResponse = await response.json();
+          const apiKeys: ApiKeys = {
+            openai: data.openai.api_key,
+            anthropic: data.anthropic.api_key,
+            gemini: data.gemini.api_key,
+          };
+          setApiKeys(apiKeys);
+          setApiKeyInputs(apiKeys);
+
+          const providers: Providers = {
+            openai: createOpenAI({ apiKey: apiKeys.openai }),
+            anthropic: createAnthropic({ apiKey: apiKeys.anthropic }),
+            gemini: createGoogleGenerativeAI({ apiKey: apiKeys.gemini }),
+          };
+          setProviders(providers);
+
+          console.log("API keys loaded.");
+        } else {
+          throw new Error(response.statusText);
+        }
+      } catch (error) {
+        showToast(`API keys loading failed: ${error}`, "error");
+      }
+    };
+    loadApiKeys();
+  }, [setApiKeys, setApiKeyInputs, setProviders, showToast]);
+
   useEffect(() => {
     const loadTools = async () => {
       if (!mcpClient) {
@@ -106,31 +138,6 @@ export function SimpleChat() {
     };
     loadTools();
   }, [mcpClient, showToast]);
-
-  useEffect(() => {  
-    const loadApiKeys = async () => {
-      try {
-        const response = await fetch("/api/api-keys");
-        if (response.ok) {
-          const data: ApiKeysResponse = await response.json();
-          const apiKeys: ApiKeys = {
-            openai: data.openai.api_key,
-            anthropic: data.anthropic.api_key,
-            gemini: data.gemini.api_key,
-          };
-
-          setApiKeys(apiKeys);
-          setApiKeyInputs(apiKeys);
-          console.log("Loaded API keys from backend.");
-        } else {
-          showToast(`Failed to load API keys from backend: ${response.statusText}`, "warning");
-        }
-      } catch (error) {
-        showToast(`Failed to load API keys from backend: ${error}`, "error");
-      }
-    };
-    loadApiKeys();
-  }, [showToast]);
 
   useEffect(() => {
     const updateAvailableModels = () => {

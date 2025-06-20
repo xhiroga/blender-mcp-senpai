@@ -16,10 +16,10 @@ logger = getLogger(__name__)
 
 
 class Server:
-    def __init__(self, locale: str):
+    def __init__(self, locale: str, port: int = 13180):
         self.server = None
         self.host = "127.0.0.1"
-        self.port = 13180
+        self.port = port
         self.locale = locale
 
     @staticmethod
@@ -68,7 +68,9 @@ class Server:
 
         frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "out"
         if frontend_dist.exists():
-            app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="static")
+            app.mount(
+                "/", StaticFiles(directory=str(frontend_dist), html=True), name="static"
+            )
         else:
             logger.warning(f"Frontend dist directory not found at {frontend_dist}")
 
@@ -102,7 +104,7 @@ if __name__ == "__main__":
     configure(mode="standalone")
 
     locale = "en_JP"
-    server = Server(locale)
+    server = Server(locale, port=23181)
     try:
         server.run()
     finally:
