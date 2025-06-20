@@ -1,4 +1,4 @@
 # Rules
 
 @ADR.ja.md
-@RULES.md
+@.cursor/rules/rules.mdc
