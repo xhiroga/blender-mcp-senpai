@@ -6,6 +6,15 @@
   - Function arguments and return values
 - Use logger for logging that is committed. However, use print for debugging logging.
 
+## Development Rules
+
+- Commit messages should be written in English, referring to Semantic Commit Messages.
+- After implementation, please verify that it works.
+  - For the frontend, execute `uv run -m src.blender_senpai.server > /dev/null 2>&1 &`, then start Playwright in MCP and verify that it works.
+    - Do not omit `> /dev/null 2>&1`. Otherwise, Bash tools will continue to run as long as standard output continues.
+    - The server port is not fixed to 13180. To find the actual port with `lsof -p <PID> | grep LISTEN`
+- Even if you install new packages under .venv, sometimes old packages are still used. This is often because bpy overwrites the package directories inside Blender. Please remove them.
+
 ## Formatting Rules
 
 - Use `from logging import getLogger` instead of `import logging`
@@ -17,7 +26,10 @@
 
 ## Meta Rules
 
+- Unless you have source code or references to documents you have searched, avoid definitive language and use words that indicate certainty or possibility.
+  - When answering based on search results, be sure to include the URL.
 - Even if the instructions are in Japanese, write comments in the code in English.
+- Do not include comments that explain the meaning of variable names, etc. Keep comments concise.
 - The project uses uv. When running `python`, use `uv run python`.
   - Example 1: `uv run python -c "import mcp.server.fastmcp as fm; print(fm.__file__)" | cat`
   - Example 2: `uv run -m src.blender_senpai.server`
