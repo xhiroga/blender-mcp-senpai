@@ -8,24 +8,11 @@ logger = getLogger(__name__)
 
 
 def _is_image_empty(obj: bpy.types.Object) -> bool:
-    if obj is None:
+    if not obj or obj.type != 'EMPTY':
         return False
-    if obj.type != 'EMPTY':
-        return False
-    # IMAGE empty only
     if getattr(obj, 'empty_display_type', None) != 'IMAGE':
         return False
-    # Ensure it has an image datablock and image_user
-    img = getattr(obj, 'data', None)
-    if img is None or img.__class__.__name__ != 'Image':
-        return False
-    if getattr(obj, 'image_user', None) is None:
-        return False
-    # Optionally ensure the source is movie or sequence
-    src = getattr(img, 'source', None)
-    if src not in {"MOVIE", "SEQUENCE", "FILE", None}:  # allow FILE for image sequences handled via frames
-        return False
-    return True
+    return getattr(obj, 'data', None).__class__.__name__ == 'Image' and getattr(obj, 'image_user', None) is not None
 
 
 def _read_props_from_object(obj: bpy.types.Object) -> dict:
@@ -81,18 +68,14 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
         col.prop(self, "offset0")
         col.prop(self, "wrap")
 
-        # Show preview information (read-only)
+        # Preview (read-only)
         obj = context.active_object
         img = getattr(obj, 'data', None)
         if img is not None:
             sub = layout.box()
             sub.label(text=f"Image source: {getattr(img, 'source', 'UNKNOWN')}")
-            dur = None
-            try:
-                dur = getattr(img, 'frame_duration', None)
-            except Exception:
-                dur = None
-            if dur is not None:
+            dur = getattr(img, 'frame_duration', None)
+            if isinstance(dur, int):
                 sub.label(text=f"Frame duration: {dur}")
 
     def execute(self, context):
@@ -141,19 +124,15 @@ def _menu_draw_turntable_settings(self, context):
 _draw_handle = None
 
 
-def _get_view_euler() -> 'bpy.types.Euler | None':
-    # Prefer current screen's first VIEW_3D space
+def _get_view_euler():
     screen = bpy.context.screen
     if not screen:
         return None
     for area in screen.areas:
         if area.type == 'VIEW_3D':
-            for space in area.spaces:
-                if space.type == 'VIEW_3D':
-                    try:
-                        return space.region_3d.view_rotation.to_euler()
-                    except Exception:
-                        continue
+            space = area.spaces.active
+            if space and space.type == 'VIEW_3D':
+                return space.region_3d.view_rotation.to_euler()
     return None
 
 
@@ -165,64 +144,28 @@ def _iter_enabled_image_empties():
 
 
 def _apply_turntable(obj: bpy.types.Object, euler):
-
-    # Sync billboard rotation
-    try:
-        obj.rotation_euler = euler
-    except Exception:
-        pass
+    obj.rotation_euler = euler
 
     offset0 = int(obj.get('bs_offset0', 0))
     wrap = bool(obj.get('bs_wrap', True))
 
-    try:
-        angle = euler[2]  # Z axis fixed
-    except Exception:
-        return
+    angle = math.pi - euler[2]
+    deg = math.degrees(angle)
 
-    # Fixed inversion for visual alignment
-    angle = math.pi - angle
-    deg = math.degrees(angle)  # roughly -180..180
-
+    iu = getattr(obj, 'image_user', None)
     img = getattr(obj, 'data', None)
-    # frame duration if available
-    duration = None
-    try:
-        duration = getattr(img, 'frame_duration', None)
-    except Exception:
-        duration = None
-    # Fallback to image datablock frame count if present
-    if (not isinstance(duration, int)) or duration <= 0:
-        try:
-            
-            dur2 = getattr(img, 'frame_duration', None)
-            if isinstance(dur2, int) and dur2 > 0:
-                duration = dur2
-        except Exception:
-            pass
+    duration = getattr(iu, 'frame_duration', None) or getattr(img, 'frame_duration', None)
 
-    # Compute offset using auto step (360 / N)
     if isinstance(duration, int) and duration > 0:
-        try:
-            step = 360.0 / float(duration)
-            q = int(deg // step)
-        except Exception:
-            q = 0
+        step = 360.0 / float(duration)
+        q = int(deg // step)
         offset = offset0 + q
-        if wrap:
-            offset = offset % duration
-        else:
-            offset = max(0, min(duration - 1, offset))
+        offset = (offset % duration) if wrap else max(0, min(duration - 1, offset))
     else:
-        # If duration unknown, keep base offset only
         offset = offset0
 
-    try:
-        if getattr(obj, 'image_user', None) is not None:
-            if obj.image_user.frame_offset != offset:
-                obj.image_user.frame_offset = offset
-    except Exception:
-        pass
+    if iu and iu.frame_offset != offset:
+        iu.frame_offset = offset
 
 
 def _draw_callback():
@@ -236,43 +179,20 @@ def _draw_callback():
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
-    try:
-        bpy.types.VIEW3D_MT_object_context_menu.append(_menu_draw_turntable_settings)
-    except Exception:
-        # Fallback for Blender versions where menu name may differ
-        try:
-            bpy.types.VIEW3D_MT_object.append(_menu_draw_turntable_settings)
-        except Exception:
-            logger.exception("Failed to append Turntable Settings to context menu")
+    bpy.types.VIEW3D_MT_object_context_menu.append(_menu_draw_turntable_settings)
 
-    # Add global draw handler once
     global _draw_handle
     if _draw_handle is None:
-        try:
-            _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
-                _draw_callback, (), 'WINDOW', 'POST_VIEW'
-            )
-        except Exception:
-            logger.exception("Failed to add SpaceView3D draw handler for turntable")
+        _draw_handle = bpy.types.SpaceView3D.draw_handler_add(
+            _draw_callback, (), 'WINDOW', 'POST_VIEW'
+        )
 
 
 def unregister():
-    try:
-        bpy.types.VIEW3D_MT_object_context_menu.remove(_menu_draw_turntable_settings)
-    except Exception:
-        try:
-            bpy.types.VIEW3D_MT_object.remove(_menu_draw_turntable_settings)
-        except Exception:
-            pass
+    bpy.types.VIEW3D_MT_object_context_menu.remove(_menu_draw_turntable_settings)
     global _draw_handle
     if _draw_handle is not None:
-        try:
-            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
-        except Exception:
-            pass
+        bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, 'WINDOW')
         _draw_handle = None
     for cls in reversed(classes):
-        try:
-            bpy.utils.unregister_class(cls)
-        except Exception:
-            pass
+        bpy.utils.unregister_class(cls)
