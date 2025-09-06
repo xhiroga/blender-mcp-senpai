@@ -10,6 +10,7 @@ from bpy.types import Operator, Panel
 from .log_config import configure
 from .server import Server
 from .utils import execute_queued_functions
+from . import turntable as turntable_module
 
 logger = getLogger(__name__)
 
@@ -89,6 +90,12 @@ def register():
     server = Server(locale)
     threading.Thread(target=server.run).start()
 
+    # Register turntable (context menu + operator)
+    try:
+        turntable_module.register()
+    except Exception as e:
+        logger.exception("Failed to register turntable module: %s", e)
+
 
 def unregister():
     logger.info("Goodbye from extension!")
@@ -99,3 +106,9 @@ def unregister():
 
     for cls in classes:
         bpy.utils.unregister_class(cls)
+
+    # Unregister turntable
+    try:
+        turntable_module.unregister()
+    except Exception:
+        pass
