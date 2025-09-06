@@ -32,7 +32,6 @@ def _read_props_from_object(obj: bpy.types.Object) -> dict:
     d = obj.get
     return {
         'enabled': bool(d('bs_turntable_enabled', False)),
-        'axis': int(d('bs_axis', 2)),
         'step_deg': float(d('bs_step_deg', 4.444)),
         'offset0': int(d('bs_offset0', 0)),
         'invert': bool(d('bs_invert', True)),
@@ -42,7 +41,6 @@ def _read_props_from_object(obj: bpy.types.Object) -> dict:
 
 def _write_props_to_object(obj: bpy.types.Object, props: dict) -> None:
     obj['bs_turntable_enabled'] = bool(props.get('enabled', True))
-    obj['bs_axis'] = int(props.get('axis', 2))
     obj['bs_step_deg'] = float(props.get('step_deg', 4.444))
     obj['bs_offset0'] = int(props.get('offset0', 0))
     obj['bs_invert'] = bool(props.get('invert', True))
@@ -186,20 +184,21 @@ def _iter_enabled_image_empties():
 
 
 def _apply_turntable(obj: bpy.types.Object, euler):
+    TURN_AXIS = 2  # Z axis for turntable
+
     # Sync billboard rotation
     try:
         obj.rotation_euler = euler
     except Exception:
         pass
 
-    axis = int(obj.get('bs_axis', 2))
     step_deg = float(obj.get('bs_step_deg', 4.444)) or 4.444
     offset0 = int(obj.get('bs_offset0', 0))
     invert = bool(obj.get('bs_invert', True))
     wrap = bool(obj.get('bs_wrap', True))
 
     try:
-        angle = euler[axis]
+        angle = euler[TURN_AXIS]
     except Exception:
         return
 
