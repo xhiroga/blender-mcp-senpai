@@ -32,18 +32,14 @@ def _read_props_from_object(obj: bpy.types.Object) -> dict:
     d = obj.get
     return {
         'enabled': bool(d('bs_turntable_enabled', False)),
-        'step_deg': float(d('bs_step_deg', 4.444)),
         'offset0': int(d('bs_offset0', 0)),
-        'invert': bool(d('bs_invert', True)),
         'wrap': bool(d('bs_wrap', True)),
     }
 
 
 def _write_props_to_object(obj: bpy.types.Object, props: dict) -> None:
     obj['bs_turntable_enabled'] = bool(props.get('enabled', True))
-    obj['bs_step_deg'] = float(props.get('step_deg', 4.444))
     obj['bs_offset0'] = int(props.get('offset0', 0))
-    obj['bs_invert'] = bool(props.get('invert', True))
     obj['bs_wrap'] = bool(props.get('wrap', True))
 
 
@@ -54,10 +50,7 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     # Operator properties (mirrors custom props)
-    axis: bpy.props.IntProperty(name="Axis", description="Rotation axis (0=X, 1=Y, 2=Z)", min=0, max=2, default=2)  # type: ignore
-    step_deg: bpy.props.FloatProperty(name="Step (deg)", description="Degrees per frame step", min=0.001, max=360.0, default=4.444, precision=3)  # type: ignore
     offset0: bpy.props.IntProperty(name="Base Offset", description="Base frame offset", default=0)  # type: ignore
-    invert: bpy.props.BoolProperty(name="Invert Angle (pi - theta)", default=True)  # type: ignore
     wrap: bpy.props.BoolProperty(name="Wrap Frames", description="Wrap frame offset within duration", default=True)  # type: ignore
     enabled: bpy.props.BoolProperty(name="Enable Turntable", default=True)  # type: ignore
 
@@ -74,10 +67,7 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
 
         # Load defaults from object custom properties if present
         vals = _read_props_from_object(obj)
-        self.axis = vals['axis']
-        self.step_deg = vals['step_deg']
         self.offset0 = vals['offset0']
-        self.invert = vals['invert']
         self.wrap = vals['wrap']
         # Respect saved flag; if not present, default to True in the dialog
         self.enabled = vals.get('enabled', True)
@@ -88,10 +78,7 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
         layout = self.layout
         col = layout.column(align=True)
         col.prop(self, "enabled")
-        col.prop(self, "axis")
-        col.prop(self, "step_deg")
         col.prop(self, "offset0")
-        col.prop(self, "invert")
         col.prop(self, "wrap")
 
         # Show preview information (read-only)
@@ -102,7 +89,7 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
             sub.label(text=f"Image source: {getattr(img, 'source', 'UNKNOWN')}")
             dur = None
             try:
-                dur = getattr(obj.image_user, 'frame_duration', None)
+                dur = getattr(img, 'frame_duration', None)
             except Exception:
                 dur = None
             if dur is not None:
@@ -116,15 +103,12 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
 
         props = {
             'enabled': bool(self.enabled),
-            'axis': int(self.axis),
-            'step_deg': float(self.step_deg),
             'offset0': int(self.offset0),
-            'invert': bool(self.invert),
             'wrap': bool(self.wrap),
         }
         _write_props_to_object(obj, props)
         logger.info(
-            f"Turntable props applied to {obj.name}: enabled={props['enabled']}, axis={props['axis']}, step_deg={props['step_deg']}, offset0={props['offset0']}, invert={props['invert']}, wrap={props['wrap']}"
+            f"Turntable props applied to {obj.name}: enabled={props['enabled']}, offset0={props['offset0']}, wrap={props['wrap']}"
         )
         return {'FINISHED'}
 
@@ -146,10 +130,7 @@ def _menu_draw_turntable_settings(self, context):
         # Pre-populate operator properties from this object's custom properties
         vals = _read_props_from_object(obj)
         op.enabled = vals.get('enabled', True)
-        op.axis = vals.get('axis', 2)
-        op.step_deg = vals.get('step_deg', 4.444)
         op.offset0 = vals.get('offset0', 0)
-        op.invert = vals.get('invert', True)
         op.wrap = vals.get('wrap', True)
 
 
@@ -184,7 +165,6 @@ def _iter_enabled_image_empties():
 
 
 def _apply_turntable(obj: bpy.types.Object, euler):
-    TURN_AXIS = 2  # Z axis for turntable
 
     # Sync billboard rotation
     try:
@@ -192,39 +172,50 @@ def _apply_turntable(obj: bpy.types.Object, euler):
     except Exception:
         pass
 
-    step_deg = float(obj.get('bs_step_deg', 4.444)) or 4.444
     offset0 = int(obj.get('bs_offset0', 0))
-    invert = bool(obj.get('bs_invert', True))
     wrap = bool(obj.get('bs_wrap', True))
 
     try:
-        angle = euler[TURN_AXIS]
+        angle = euler[2]  # Z axis fixed
     except Exception:
         return
 
-    if invert:
-        angle = math.pi - angle
+    # Fixed inversion for visual alignment
+    angle = math.pi - angle
     deg = math.degrees(angle)  # roughly -180..180
 
-    try:
-        # quantize by step degrees
-        q = int(deg // step_deg) if step_deg != 0 else 0
-    except Exception:
-        q = 0
-    offset = offset0 + q
-
+    img = getattr(obj, 'data', None)
     # frame duration if available
     duration = None
     try:
-        duration = getattr(obj.image_user, 'frame_duration', None)
+        duration = getattr(img, 'frame_duration', None)
     except Exception:
         duration = None
+    # Fallback to image datablock frame count if present
+    if (not isinstance(duration, int)) or duration <= 0:
+        try:
+            
+            dur2 = getattr(img, 'frame_duration', None)
+            if isinstance(dur2, int) and dur2 > 0:
+                duration = dur2
+        except Exception:
+            pass
 
+    # Compute offset using auto step (360 / N)
     if isinstance(duration, int) and duration > 0:
+        try:
+            step = 360.0 / float(duration)
+            q = int(deg // step)
+        except Exception:
+            q = 0
+        offset = offset0 + q
         if wrap:
             offset = offset % duration
         else:
             offset = max(0, min(duration - 1, offset))
+    else:
+        # If duration unknown, keep base offset only
+        offset = offset0
 
     try:
         if getattr(obj, 'image_user', None) is not None:
