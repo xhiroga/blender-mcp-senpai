@@ -20,14 +20,12 @@ def _read_props_from_object(obj: bpy.types.Object) -> dict:
     return {
         'enabled': bool(d('bs_turntable_enabled', False)),
         'offset0': int(d('bs_offset0', 0)),
-        'wrap': bool(d('bs_wrap', True)),
     }
 
 
 def _write_props_to_object(obj: bpy.types.Object, props: dict) -> None:
     obj['bs_turntable_enabled'] = bool(props.get('enabled', True))
     obj['bs_offset0'] = int(props.get('offset0', 0))
-    obj['bs_wrap'] = bool(props.get('wrap', True))
 
 
 class BLENDER_SENPAI_OT_turntable_settings(Operator):
@@ -38,7 +36,6 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
 
     # Operator properties (mirrors custom props)
     offset0: bpy.props.IntProperty(name="Base Offset", description="Base frame offset", default=0)  # type: ignore
-    wrap: bpy.props.BoolProperty(name="Wrap Frames", description="Wrap frame offset within duration", default=True)  # type: ignore
     enabled: bpy.props.BoolProperty(name="Enable Turntable", default=True)  # type: ignore
 
     @classmethod
@@ -55,7 +52,6 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
         # Load defaults from object custom properties if present
         vals = _read_props_from_object(obj)
         self.offset0 = vals['offset0']
-        self.wrap = vals['wrap']
         # Respect saved flag; if not present, default to True in the dialog
         self.enabled = vals.get('enabled', True)
 
@@ -66,7 +62,7 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
         col = layout.column(align=True)
         col.prop(self, "enabled")
         col.prop(self, "offset0")
-        col.prop(self, "wrap")
+        # always wrap; no toggle
 
         # Preview (read-only)
         obj = context.active_object
@@ -87,11 +83,10 @@ class BLENDER_SENPAI_OT_turntable_settings(Operator):
         props = {
             'enabled': bool(self.enabled),
             'offset0': int(self.offset0),
-            'wrap': bool(self.wrap),
         }
         _write_props_to_object(obj, props)
         logger.info(
-            f"Turntable props applied to {obj.name}: enabled={props['enabled']}, offset0={props['offset0']}, wrap={props['wrap']}"
+            f"Turntable props applied to {obj.name}: enabled={props['enabled']}, offset0={props['offset0']}"
         )
         return {'FINISHED'}
 
@@ -114,7 +109,6 @@ def _menu_draw_turntable_settings(self, context):
         vals = _read_props_from_object(obj)
         op.enabled = vals.get('enabled', True)
         op.offset0 = vals.get('offset0', 0)
-        op.wrap = vals.get('wrap', True)
 
 
 # ----------------------------
@@ -147,7 +141,6 @@ def _apply_turntable(obj: bpy.types.Object, euler):
     obj.rotation_euler = euler
 
     offset0 = int(obj.get('bs_offset0', 0))
-    wrap = bool(obj.get('bs_wrap', True))
 
     angle = math.pi - euler[2]
     deg = math.degrees(angle)
@@ -160,7 +153,7 @@ def _apply_turntable(obj: bpy.types.Object, euler):
         step = 360.0 / float(duration)
         q = int(deg // step)
         offset = offset0 + q
-        offset = (offset % duration) if wrap else max(0, min(duration - 1, offset))
+        offset = offset % duration
     else:
         offset = offset0
 
