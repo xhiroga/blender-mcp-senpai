@@ -19,10 +19,9 @@ model_configs: list[ModelConfig] = [
     # https://platform.openai.com/docs/models
     # https://docs.cursor.com/settings/models
     # https://docs.litellm.ai/docs/providers/openai
-    {"provider": "openai", "model": "o4-mini", "default": True},
-    {"provider": "openai", "model": "o3", "default": False},
-    {"provider": "openai", "model": "gpt-4.1-mini", "default": False},
-    {"provider": "openai", "model": "gpt-4.1", "default": False},
+    {"provider": "openai", "model": "gpt-5", "default": True},
+    {"provider": "openai", "model": "gpt-5-mini", "default": False},
+    {"provider": "openai", "model": "gpt-5-nano", "default": False},
     # https://docs.litellm.ai/docs/providers/gemini
     # https://ai.google.dev/gemini-api/docs/models
     {"provider": "gemini", "model": "gemini-2.5-flash-preview-04-17", "default": True},
@@ -142,9 +141,6 @@ async def completion_stream(
         "tools": tools,
         "tool_choice": "auto",
     }
-    if litellm.supports_reasoning(model):
-        first_params["reasoning_effort"] = "low"
-
     logger.info(f"litellm.acompletion: {first_params=}")
 
     first_stream = await litellm.acompletion(**first_params, api_key=api_key.reveal())
