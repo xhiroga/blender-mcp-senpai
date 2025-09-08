@@ -147,7 +147,7 @@ def _apply_turntable(obj: bpy.types.Object, euler):
 
     iu = getattr(obj, 'image_user', None)
     img = getattr(obj, 'data', None)
-    duration = getattr(iu, 'frame_duration', None) or getattr(img, 'frame_duration', None)
+    duration = getattr(img, 'frame_duration', None)
 
     if isinstance(duration, int) and duration > 0:
         step = 360.0 / float(duration)
