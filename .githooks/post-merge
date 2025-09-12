@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# Dual Repo Pattern - Detect and warn about private branch merges
+# This hook runs after a successful merge
+
+current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+# If current branch doesn't start with 'private/'
+if [[ ! "$current_branch" =~ ^private/ ]]; then
+    # Check the last commit message for merge information
+    last_commit_msg=$(git log -1 --pretty=%s)
+    
+    if [[ "$last_commit_msg" =~ Merge.*private/ ]]; then
+        echo ""
+        echo "⚠️  WARNING: You just merged a private branch into public branch '$current_branch'"
+        echo "This may expose private code to the public repository!"
+        echo ""
+        echo "To undo this merge, run:"
+        echo "  git reset --hard HEAD^"
+        echo ""
+        # We can't block it, but at least warn immediately
+    fi
+fi
+
+exit 0
