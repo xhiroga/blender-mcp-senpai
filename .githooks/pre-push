@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# Dual Repo Pattern - Prevent pushing private branches to wrong remote
+# This hook enforces that branches starting with 'private/' can only be pushed to 'private' remote
+
+remote="$1"
+url="$2"
+
+while read local_ref local_sha remote_ref remote_sha; do
+    # Extract branch name from ref
+    if [[ "$local_ref" =~ refs/heads/(.*) ]]; then
+        branch_name="${BASH_REMATCH[1]}"
+        
+        # Check if branch starts with 'private/'
+        if [[ "$branch_name" =~ ^private/ ]]; then
+            # Private branches must only go to 'private' remote
+            if [ "$remote" != "private" ]; then
+                echo "Error: Attempting to push private branch '$branch_name' to remote '$remote'"
+                echo "Private branches can only be pushed to the 'private' remote"
+                echo "Use: git push private $branch_name"
+                exit 1
+            fi
+        fi
+    fi
+done
+
+exit 0
